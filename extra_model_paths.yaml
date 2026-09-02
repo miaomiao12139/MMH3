@@ -1,0 +1,7 @@
+comfyui:
+  base_path: .
+  diffusion_models: models/diffusion_models/
+  text_encoders: models/text_encoders/
+  vae: models/vae/
+  loras: models/loras/
+  custom_nodes: ComfyUI/custom_nodes/

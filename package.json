@@ -1,0 +1,31 @@
+{
+  "name": "minimax-h3-studio",
+  "version": "1.0.0",
+  "description": "Offline MiniMax H3 video generation studio",
+  "author": "MiniMax H3 Studio",
+  "private": true,
+  "main": "src/main.cjs",
+  "scripts": {
+    "build": "vite build",
+    "test": "node test/smoke.mjs",
+    "dist": "npm run build && electron-builder --win portable"
+  },
+  "dependencies": {
+    "react": "latest",
+    "react-dom": "latest",
+    "ws": "latest"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "latest",
+    "electron": "latest",
+    "electron-builder": "latest",
+    "vite": "latest"
+  },
+  "build": {
+    "appId": "com.minimax.h3.studio",
+    "productName": "MiniMax H3 Studio",
+    "directories": { "output": "release" },
+    "files": ["dist/**/*", "src/main.cjs", "src/preload.cjs"],
+    "portable": { "artifactName": "MiniMax H3 Studio.exe" }
+  }
+}

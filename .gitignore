@@ -1,0 +1,17 @@
+node_modules/
+release/
+rollback-backups/
+.updates/
+*.log
+*.log.*
+dist/
+
+# Local model/runtime and user data must stay outside the source repository.
+outputs/
+models/
+python/
+ComfyUI/
+input/
+output/
+user/
+

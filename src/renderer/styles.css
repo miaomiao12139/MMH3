@@ -133,7 +133,7 @@ button { cursor: pointer; border: 0; }
 .refresh-button { padding: 5px 0; color: var(--muted); background: transparent; font-size: 11px; }
 .refresh-button:hover { color: var(--text); }
 .recent-empty { margin-top: 12px; padding: 14px 0; color: var(--faint); font-size: 12px; }
-.gallery { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 12px; }
+.gallery { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
 .video-card { min-width: 0; cursor: pointer; border: 1px solid transparent; border-radius: 10px; background: var(--surface); transition: border-color .16s ease, transform .16s ease; }
 .video-card:hover, .video-card.selected { border-color: rgba(99, 102, 241, .35); transform: translateY(-1px); }
 .video-thumb { position: relative; overflow: hidden; aspect-ratio: 16 / 9; border-radius: 9px 9px 0 0; background: #101116; }
@@ -143,7 +143,7 @@ button { cursor: pointer; border: 0; }
 .delete-video { position: absolute; top: 9px; right: 9px; display: flex; width: 26px; height: 26px; align-items: center; justify-content: center; padding: 0; border-radius: 7px; color: #fff; background: rgba(0, 0, 0, .56); font-family: Arial, sans-serif; font-size: 17px; font-weight: 400; line-height: 26px; opacity: 0; transition: opacity .16s ease, background .16s ease; }
 .video-card:hover .delete-video { opacity: 1; }
 .delete-video:hover { background: rgba(179, 78, 91, .9); }
-.video-card-copy { padding: 10px 11px 11px; }
+.video-card-copy { padding: 8px 9px 9px; }
 .video-card-copy strong, .video-card-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .video-card-copy strong { color: var(--text); font-size: 11px; font-weight: 500; }
 .video-card-copy small { margin-top: 5px; color: var(--faint); font-size: 10px; }

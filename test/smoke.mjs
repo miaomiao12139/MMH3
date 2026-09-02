@@ -21,6 +21,7 @@ assert.match(source, /queue-paused/);
 assert.match(source, /atomicWriteText/);
 assert.match(source, /cleanupUploaded/);
 assert.match(source, /verifyUpdateAsset/);
+assert.match(source, /isUpdateAsset/);
 assert.match(source, /process\.platform !== "win32"/);
 assert.match(source, /screen\.getPrimaryDisplay/);
 assert.match(preload, /removeListener\("status"/);

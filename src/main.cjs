@@ -280,6 +280,10 @@ function latestRelease() {
   return githubRequest(`/repos/${UPDATE_REPO}/releases/latest`);
 }
 
+function isUpdateAsset(assetName) {
+  return path.basename(String(assetName || "")).toLowerCase().replace(/[._\s-]+/g, "") === "minimaxh3studioexe";
+}
+
 function downloadFile(url, destination, redirectCount = 0) {
   return new Promise((resolve, reject) => {
     if (redirectCount > 5) return reject(new Error("更新下载重定向过多"));
@@ -318,7 +322,7 @@ async function getUpdateInfo() {
   const currentVersion = app.getVersion();
   const release = await latestRelease();
   const latestVersion = String(release.tag_name || release.name || "").replace(/^v/i, "");
-  const asset = (release.assets || []).find((item) => path.basename(String(item.name || "")).toLowerCase() === "minimax h3 studio.exe");
+  const asset = (release.assets || []).find((item) => isUpdateAsset(item.name));
   return { currentVersion, latestVersion, hasUpdate: Boolean(asset && latestVersion && isNewerVersion(latestVersion, currentVersion)), assetName: asset?.name || "", releaseUrl: release.html_url || "", notes: release.body || "" };
 }
 
@@ -975,7 +979,7 @@ ipcMain.handle("update-app", async () => {
     const info = await getUpdateInfo();
     if (!info.hasUpdate) return { ok: false, error: "当前已是最新版本" };
     const release = await latestRelease();
-    const asset = (release.assets || []).find((item) => path.basename(item.name).toLowerCase() === "minimax h3 studio.exe");
+    const asset = (release.assets || []).find((item) => isUpdateAsset(item.name));
     if (!asset?.browser_download_url) return { ok: false, error: "Release 中没有找到 exe 更新包" };
     const updateDir = path.join(rootDir(), ".updates");
     fs.mkdirSync(updateDir, { recursive: true });

@@ -1,6 +1,6 @@
 {
   "name": "minimax-h3-studio",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Offline MiniMax H3 video generation studio",
   "author": "MiniMax H3 Studio",
   "private": true,

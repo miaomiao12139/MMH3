@@ -10,7 +10,7 @@ const preload = fs.readFileSync(path.join(project, "src", "preload.cjs"), "utf8"
 const renderer = fs.readFileSync(path.join(project, "src", "renderer", "main.jsx"), "utf8");
 const styles = fs.readFileSync(path.join(project, "src", "renderer", "styles.css"), "utf8");
 const sourceWorkflowDir = path.join(project, "workflows");
-const portableWorkflowDir = path.resolve(project, "..", "..", "outputs", "MiniMax-H3-Portable", "workflows");
+const portableWorkflowDir = path.resolve(project, "..", "..", "App", "workflows");
 const workflowDir = fs.existsSync(sourceWorkflowDir) ? sourceWorkflowDir : portableWorkflowDir;
 
 assert.doesNotMatch(source, /fallbackProgress/);

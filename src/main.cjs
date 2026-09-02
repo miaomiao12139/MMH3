@@ -39,7 +39,7 @@ function openLog(filePath) {
 
 function rootDir() {
   if (process.env.PORTABLE_EXECUTABLE_DIR) return process.env.PORTABLE_EXECUTABLE_DIR;
-  if (!app.isPackaged) return path.resolve(__dirname, "..", "..", "outputs", "MiniMax-H3-Portable");
+  if (!app.isPackaged) return path.resolve(__dirname, "..", "..", "..", "App");
   return path.dirname(process.execPath);
 }
 

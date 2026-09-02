@@ -287,7 +287,7 @@ function isUpdateAsset(assetName) {
 function downloadFile(url, destination, redirectCount = 0) {
   return new Promise((resolve, reject) => {
     if (redirectCount > 5) return reject(new Error("更新下载重定向过多"));
-    https.get(url, { headers: { "User-Agent": "MiniMax-H3-Studio", Accept: "application/octet-stream" } }, (response) => {
+    const request = https.get(url, { headers: { "User-Agent": "MiniMax-H3-Studio", Accept: "application/octet-stream" } }, (response) => {
       if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
         response.resume();
         return resolve(downloadFile(response.headers.location, destination, redirectCount + 1));
@@ -300,7 +300,9 @@ function downloadFile(url, destination, redirectCount = 0) {
       response.pipe(stream);
       stream.on("finish", () => stream.close(resolve));
       stream.on("error", (error) => { stream.destroy(); reject(error); });
-    }).on("error", reject);
+    });
+    request.on("error", reject);
+    request.setTimeout(120000, () => request.destroy(new Error("更新下载超时")));
   });
 }
 

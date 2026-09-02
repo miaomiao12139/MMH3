@@ -31,4 +31,4 @@ The portable executable is named `MiniMax H3 Studio.exe`. The application expect
 
 ## Updates
 
-The desktop app checks the GitHub Releases page for `miaomiao12139/MMH3`. A release should include an asset named exactly `MiniMax H3 Studio.exe`; model files are never replaced during an app update.
+The desktop app checks the GitHub Releases page for `miaomiao12139/MMH3`. A release should include the portable exe asset (`MiniMax H3 Studio.exe`, which GitHub may display as `MiniMax.H3.Studio.exe`); model files are never replaced during an app update.

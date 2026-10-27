@@ -7,4 +7,4 @@ esac
 installer=$(mktemp --suffix=.ps1)
 trap 'rm -f "$installer"' EXIT
 curl --fail --location --silent --show-error https://raw.githubusercontent.com/miaomiao12139/MMH3/main/cli/install.ps1 -o "$installer"
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w "$installer")" "$@"
+env -u PSModulePath powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w "$installer")" "$@"

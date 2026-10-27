@@ -1,0 +1,26 @@
+.integration-modal { display: flex; flex-direction: column; width: min(840px, 94vw); max-height: 88vh; overflow: hidden; outline: none; }
+.integration-tabs { display: flex; gap: 8px; padding: 0 20px 12px; border-bottom: 1px solid var(--line); }
+.integration-tabs button { padding: 8px 14px; border-radius: 7px; color: var(--muted); background: var(--surface-soft); }
+.integration-tabs button[aria-selected="true"] { color: var(--accent); background: var(--accent-soft); }
+.integration-content { min-height: 0; overflow: auto; padding: 16px 20px 20px; }
+.integration-note { margin: 0 0 16px; color: var(--muted); font-size: 12px; line-height: 1.8; }
+.integration-command { min-width: 0; margin: 12px 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.integration-command-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; }
+.integration-command h3 { margin: 0; color: var(--text); font-size: 13px; font-weight: 600; }
+.integration-command-head button { display: inline-flex; flex-shrink: 0; align-items: center; gap: 5px; padding: 6px 9px; border-radius: 6px; color: var(--accent); background: var(--accent-soft); font-size: 12px; }
+.integration-command-head button:hover { filter: brightness(1.12); }
+.integration-command p { margin: 0 12px 10px; color: var(--muted); font-size: 12px; line-height: 1.7; }
+.integration-command pre { margin: 0; padding: 12px; border-top: 1px solid var(--line); color: var(--text); background: var(--surface-soft); font: 12px/1.8 Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; }
+.integration-example-select { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 22px; color: var(--text); font-size: 13px; }
+.integration-example-select select { min-width: 160px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; color: var(--text); background: var(--surface-soft); }
+.integration-error { color: #cf6473; font-size: 12px; }
+.integration-feedback { flex: 1; align-self: center; color: var(--success); font-size: 12px; }
+.integration-connection { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; margin-bottom: 16px; color: var(--muted); font-size: 12px; }
+.integration-connection .connected { color: var(--success); }
+.integration-modal button:focus-visible, .integration-modal select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.integration-connect { min-height: 0; overflow: auto; padding: 24px; }
+.integration-connect h3 { margin: 0 0 9px; color: var(--text); font-size: 19px; }
+.integration-connect > p { margin: 0 0 18px; color: var(--muted); font-size: 13px; line-height: 1.8; }
+.integration-connect pre { margin: 0 0 18px; padding: 16px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); background: var(--surface-soft); font: 12px/1.9 Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; }
+.integration-connect-copy { display: flex; width: 100%; align-items: center; justify-content: center; gap: 8px; padding: 12px; }
+.integration-connect small { display: block; margin-top: 12px; color: var(--faint); font-size: 12px; text-align: center; }

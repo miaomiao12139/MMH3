@@ -2341,6 +2341,12 @@ ipcMain.handle("set-video-favorite", (_event, filePath, favorite) => {
   } catch (error) { return { ok: false, error: error.message }; }
 });
 ipcMain.handle("app-version", () => app.getVersion());
+ipcMain.handle("integration-info", () => ({ ok: true, appRoot: rootDir(), descriptorPath: studioApiDescriptorPath(), baseUrl: studioApiServer ? `http://127.0.0.1:${studioApiPort}` : "" }));
+ipcMain.handle("copy-text", (_event, text) => {
+  if (typeof text !== "string" || text.length > 100000) return { ok: false, error: "复制内容无效或过长" };
+  try { clipboard.writeText(text); return { ok: true }; }
+  catch (error) { return { ok: false, error: `复制失败：${error.message}` }; }
+});
 ipcMain.handle("check-update", async () => {
   try { return { ok: true, ...(await getUpdateInfo()) }; }
   catch (error) {

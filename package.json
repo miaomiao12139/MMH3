@@ -1,6 +1,6 @@
 {
   "name": "minimax-h3-studio",
-  "version": "1.1.16",
+  "version": "1.1.17",
   "description": "Offline MiniMax H3 video generation studio",
   "author": "MiniMax H3 Studio",
   "private": true,
@@ -66,7 +66,11 @@
       {
         "from": "cli",
         "to": "cli",
-        "filter": ["**/*", "!**/__pycache__/**", "!**/*.pyc"]
+        "filter": [
+          "**/*",
+          "!**/__pycache__/**",
+          "!**/*.pyc"
+        ]
       }
     ],
     "portable": {

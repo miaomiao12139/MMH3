@@ -1,6 +1,8 @@
 const { contextBridge, ipcRenderer, webUtils } = require("electron");
 
 contextBridge.exposeInMainWorld("studio", {
+  getIntegrationInfo: () => ipcRenderer.invoke("integration-info"),
+  copyText: (text) => ipcRenderer.invoke("copy-text", text),
   pickFile: (kind) => ipcRenderer.invoke("pick-file", kind),
   pickFiles: (kind) => ipcRenderer.invoke("pick-files", kind),
   getPathForFile: (file) => {

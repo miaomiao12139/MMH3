@@ -51,7 +51,7 @@ export default function IntegrationSettings({ onClose }) {
   const sampleCommand = `'${JSON.stringify(samples[sample][1])}' | Set-Content -Encoding UTF8 h3-input.json\nh3 ${sample === "video" ? "generate" : `task ${kind}`} --input "@h3-input.json" --wait`;
   const descriptor = info ? psQuote(info.descriptorPath) : "";
   const apiSetup = `$h3 = Get-Content -LiteralPath ${descriptor} -Raw | ConvertFrom-Json\n$headers = @{ Authorization = "Bearer $($h3.token)" }`;
-  const connectPrompt = `请帮我接入 H3 Studio 的全部本机功能，安装 CLI 与 Skill，执行：\n\nirm https://raw.githubusercontent.com/miaomiao12139/MMH3/2248c5e62d49a09c8ed4292f13b8f2d6a32aff46/cli/install.ps1 | iex\n\n安装后执行 h3 skill show 阅读使用说明，连接当前安装目录 ${info?.appRoot || "（我的 H3 App 目录）"}，运行 h3 doctor 验证。之后通过 H3 完成我的视频生成、语音、图片/视频增强、补帧、抠图和图像理解请求。`;
+  const connectPrompt = `请帮我接入 H3 Studio 的全部本机功能，安装 CLI 与 Skill，执行：\n\nirm https://raw.githubusercontent.com/miaomiao12139/MMH3/868adeed26eab0721b6a9f0248afde36f501cfc3/cli/install.ps1 | iex\n\n安装后执行 h3 skill show 阅读使用说明，连接当前安装目录 ${info?.appRoot || "（我的 H3 App 目录）"}，运行 h3 doctor 验证。之后通过 H3 完成我的视频生成、语音、图片/视频增强、补帧、抠图和图像理解请求。`;
   function trapFocus(event) {
     if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); onClose(); return; }
     if (event.key !== "Tab") return;
@@ -76,8 +76,8 @@ export default function IntegrationSettings({ onClose }) {
       <p className="integration-note">保持 H3 打开，任务在本机执行，无需云账号登录。下方命令可直接复制；文件路径请替换为实际路径。</p>
       {error && <p className="integration-error" role="alert">{error}</p>}
       {!info ? <p className="integration-note">{error ? "关闭后重新打开可重试。" : "正在读取本机接口信息…"}</p> : tab === "cli" ? <>
-        {command("install", "一键安装 CLI + Skill · PowerShell", "irm https://raw.githubusercontent.com/miaomiao12139/MMH3/2248c5e62d49a09c8ed4292f13b8f2d6a32aff46/cli/install.ps1 | iex", "安装命令行工具和 Codex Skill，使用已有 H3 模型。安装后打开新终端运行 h3。")}
-        {command("bash", "一键安装 · Windows Git Bash", "curl -fsSL https://raw.githubusercontent.com/miaomiao12139/MMH3/658757ee421cabe9a5531072d7537aecb9aea78c/cli/install.sh | bash")}
+        {command("install", "一键安装 CLI + Skill · PowerShell", "irm https://raw.githubusercontent.com/miaomiao12139/MMH3/868adeed26eab0721b6a9f0248afde36f501cfc3/cli/install.ps1 | iex", "安装命令行工具和 Codex Skill，使用已有 H3 模型。安装后打开新终端运行 h3。")}
+        {command("bash", "一键安装 · Windows Git Bash", "curl -fsSL https://raw.githubusercontent.com/miaomiao12139/MMH3/371df49d76da1ce124b6b59662d1dcf916f2c85d/cli/install.sh | bash")}
         {command("login", "连接当前 H3", `h3 auth login --app-root ${psQuote(info.appRoot)}\nh3 doctor`, "已填入这台电脑的实际安装目录。")}
         {command("discover", "查询可用功能", "h3 capabilities\nh3 --help")}
         <label className="integration-example-select">调用示例<select value={sample} onChange={e => setSample(e.target.value)}>{Object.entries(samples).map(([id, [title]]) => <option key={id} value={id}>{title}</option>)}</select></label>

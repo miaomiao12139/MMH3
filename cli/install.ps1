@@ -1,11 +1,15 @@
 param(
   [string]$AppRoot,
   [string]$InstallDir = "$env:LOCALAPPDATA\H3CLI",
-  [string]$Version = 'cli-v1.1.19',
+  [string]$Version = 'cli-v1.1.19-r2',
   [switch]$SkipSkill,
   [switch]$NoPath
 )
 $ErrorActionPreference = 'Stop'
+if ($PSVersionTable.PSVersion.Major -le 5) {
+  # PS7 parent shells may inject their incompatible module paths into PS5.
+  $env:PSModulePath = (Join-Path $PSHOME 'Modules') + ';' + $env:PSModulePath
+}
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $localBundle = $PSScriptRoot -and (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'h3.py'))
 $bundle = $PSScriptRoot

@@ -642,7 +642,7 @@ async function handleStudioApi(request, response) {
     if (request.method === "POST" && url.pathname === "/api/v1/tasks") {
       const body = await studioApiReadBody(request);
       if (!body || typeof body !== "object" || Array.isArray(body)) throw new Error("请求必须是 JSON 对象");
-      const job = getIntegrationJobs().submit(body.kind, body.input || {}, String(request.headers["idempotency-key"] || ""));
+      const job = getIntegrationJobs().submit(body.kind, body.input === undefined ? {} : body.input, String(request.headers["idempotency-key"] || ""));
       return studioApiJson(response, 202, { ok: true, job });
     }
     const taskMatch = url.pathname.match(/^\/api\/v1\/tasks\/([^/]+)(\/cancel)?$/);
@@ -680,20 +680,8 @@ async function handleStudioApi(request, response) {
       const jobId = decodeURIComponent(cancelMatch[1]);
       const job = readQueueJobs().find((item) => item.id === jobId);
       if (!job || ["completed", "failed", "cancelled"].includes(job.state)) return studioApiJson(response, 409, { ok: false, error: "任务当前不可取消" });
-      if (job.id === activeQueueJobId) {
-        const task = activeTask;
-        job.cancelRequested = true;
-        task.canceled = true;
-        if (task.preparation) task.preparation.kill();
-        if (task.promptId) await cancelPrompt(requestJson, task.promptId);
-        if (task.ws) task.ws.close();
-      } else {
-        job.state = "cancelled";
-        job.error = "已取消";
-        job.progress = { value: 0, max: 100, label: "已取消" };
-        writeQueueJobs();
-        emitQueue();
-      }
+      const result = await studioHandlers.get("cancel-queue-item")({ integration: true }, jobId);
+      if (result?.ok === false) return studioApiJson(response, 400, result);
       return studioApiJson(response, 200, { ok: true, job: studioApiJob(jobId) });
     }
     if (request.method === "GET" && url.pathname === "/api/v1/openapi.json") {
@@ -2134,10 +2122,14 @@ ipcMain.handle("reorder-queue-item", (_event, jobId, targetIndex) => {
   const to = Math.max(0, Math.min(queuedIndexes.length - 1, Number(targetIndex) || 0));
   if (from === to) return { ok: true };
   const ordered = queuedIndexes.map((index) => jobs[index]);
+  const previous = [...jobs];
   const [moved] = ordered.splice(from, 1);
   ordered.splice(to, 0, moved);
   queuedIndexes.forEach((index, position) => { jobs[index] = ordered[position]; });
-  writeQueueJobs();
+  if (writeQueueJobs() === false) {
+    jobs.splice(0, jobs.length, ...previous);
+    return { ok: false, error: "队列保存失败，顺序未更改，请检查磁盘后重试" };
+  }
   emitQueue();
   processQueue();
   return { ok: true };
@@ -2177,10 +2169,15 @@ ipcMain.handle("cancel-queue-item", async (_event, jobId) => {
     }
     if (task.ws) task.ws.close();
   } else {
+    const previous = { ...job };
     job.state = "cancelled";
     job.error = "已取消";
     job.progress = { value: 0, max: 100, label: "已取消" };
-    writeQueueJobs();
+    if (writeQueueJobs() === false) {
+      Object.assign(job, previous);
+      for (const key of Object.keys(job)) if (!Object.hasOwn(previous, key)) delete job[key];
+      return { ok: false, error: "队列保存失败，任务未取消，请检查磁盘后重试" };
+    }
     emitQueue();
   }
   return { ok: true };
@@ -2190,15 +2187,19 @@ ipcMain.handle("remove-queue-item", (_event, jobId) => {
   const index = jobs.findIndex((item) => item.id === String(jobId || ""));
   if (index < 0) return { ok: false, error: "找不到任务" };
   if (jobs[index].id === activeQueueJobId || ["preparing", "running"].includes(jobs[index].state)) return { ok: false, error: "正在生成的任务不能删除" };
-  cleanupQueueMedia(jobs[index]);
-  jobs.splice(index, 1);
-  writeQueueJobs();
+  const [removed] = jobs.splice(index, 1);
+  if (writeQueueJobs() === false) {
+    jobs.splice(index, 0, removed);
+    return { ok: false, error: "队列保存失败，任务及输入素材已保留" };
+  }
+  cleanupQueueMedia(removed);
   emitQueue();
   return { ok: true };
 });
 ipcMain.handle("retry-queue-item", async (_event, jobId) => {
   const job = readQueueJobs().find((item) => item.id === String(jobId || ""));
   if (!job || !["failed", "cancelled", "interrupted"].includes(job.state)) return { ok: false, error: "当前任务不能重试" };
+  const previous = { ...job };
   try {
     const available = (...paths) => paths.find(file => {
       try { return Boolean(file) && fs.statSync(file).isFile(); } catch (_) { return false; }
@@ -2223,7 +2224,7 @@ ipcMain.handle("retry-queue-item", async (_event, jobId) => {
     if (recovered.some(file => !file)) throw new Error("部分参考素材已丢失，请复用输入并在原槽位重新添加");
     job.media = recovered.every((file, index) => file === media[index]) ? media : await stageQueueMedia(job.id, recovered, `recovery-${crypto.randomUUID()}`);
   }
-  catch (error) { return { ok: false, error: error.message }; }
+  catch (error) { Object.assign(job, previous); return { ok: false, error: error.message }; }
   job.state = "queued";
   job.error = "";
   job.outputPath = "";
@@ -2231,18 +2232,29 @@ ipcMain.handle("retry-queue-item", async (_event, jobId) => {
   job.startedAt = 0;
   job.completedAt = 0;
   job.progress = { value: 0, max: 100, label: "排队中" };
-  writeQueueJobs();
+  if (writeQueueJobs() === false) {
+    Object.assign(job, previous);
+    for (const key of Object.keys(job)) if (!Object.hasOwn(previous, key)) delete job[key];
+    return { ok: false, error: "队列保存失败，未开始重试，原任务已保留" };
+  }
   emitQueue();
   processQueue();
   return { ok: true };
 });
 ipcMain.handle("clear-queue", (_event, mode = "finished") => {
+  if (!["finished", "all"].includes(mode)) return { ok: false, error: "无效的队列清理模式" };
   const removable = mode === "all" ? new Set(["completed", "failed", "cancelled", "interrupted"]) : new Set(["completed"]);
   const jobs = readQueueJobs();
+  const previous = [...jobs];
+  const removed = [];
   for (let index = jobs.length - 1; index >= 0; index -= 1) {
-    if (removable.has(jobs[index].state) && jobs[index].id !== activeQueueJobId) { cleanupQueueMedia(jobs[index]); jobs.splice(index, 1); }
+    if (removable.has(jobs[index].state) && jobs[index].id !== activeQueueJobId) removed.push(...jobs.splice(index, 1));
   }
-  writeQueueJobs();
+  if (writeQueueJobs() === false) {
+    jobs.splice(0, jobs.length, ...previous);
+    return { ok: false, error: "队列保存失败，记录及输入素材已保留" };
+  }
+  for (const job of removed) cleanupQueueMedia(job);
   emitQueue();
   return { ok: true };
 });
@@ -2695,7 +2707,9 @@ ipcMain.handle("list-workflow-backups", (_event, workflowId) => {
 ipcMain.handle("restore-workflow-backup", (_event, workflowId, backupId) => {
   const id = workflowIdFromValue(workflowId);
   const backupDir = path.resolve(rootDir(), "user", "workflows", "backups");
-  const targetBackup = path.resolve(backupDir, path.basename(String(backupId || "")));
+  const backupName = String(backupId || "");
+  if (path.basename(backupName) !== backupName || !backupName.startsWith(`${id}.`) || !backupName.endsWith(".json")) return { ok: false, error: "备份不属于当前工作流" };
+  const targetBackup = path.resolve(backupDir, backupName);
   if (!isWithin(backupDir, targetBackup) || !fs.existsSync(targetBackup)) return { ok: false, error: "找不到备份" };
   try {
     const graph = JSON.parse(fs.readFileSync(targetBackup, "utf8"));
@@ -2704,7 +2718,7 @@ ipcMain.handle("restore-workflow-backup", (_event, workflowId, backupId) => {
     const target = customWorkflowPath(id);
     fs.mkdirSync(path.dirname(target), { recursive: true });
     if (fs.existsSync(target)) fs.copyFileSync(target, workflowBackupPath(id));
-    fs.writeFileSync(target, JSON.stringify(graph, null, 2), "utf8");
+    atomicWriteText(target, JSON.stringify(graph, null, 2));
     return { ok: true, content: JSON.stringify(graph, null, 2) };
   } catch (error) { return { ok: false, error: `恢复失败：${error.message}` }; }
 });

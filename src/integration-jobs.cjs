@@ -5,10 +5,20 @@ function createIntegrationJobs({ rootDir, writeText, operations, cancel, isBusy 
   let jobs;
   let active = null;
   let persistenceFailure = "";
+  const cancellations = new Map();
   const file = () => path.join(rootDir(), "user", "integration-jobs.json");
   function load() {
     if (jobs) return;
-    try { const parsed = JSON.parse(fs.readFileSync(file(), "utf8")); if (!Array.isArray(parsed) || parsed.some(j => !j || typeof j.id !== "string")) throw new Error("invalid job list"); jobs = parsed; }
+    try {
+      const parsed = JSON.parse(fs.readFileSync(file(), "utf8"));
+      const ids = new Set();
+      const states = new Set(["queued", "running", "cancelling", "completed", "failed", "cancelled", "interrupted"]);
+      if (!Array.isArray(parsed) || parsed.some(j => {
+        if (!j || typeof j.id !== "string" || !j.id || ids.has(j.id) || !states.has(j.state) || typeof j.kind !== "string" || !j.kind) return true;
+        ids.add(j.id); return false;
+      })) throw new Error("invalid job list");
+      jobs = parsed;
+    }
     catch (e) { if (e.code !== "ENOENT") throw new Error(`集成任务记录损坏，原文件已保留：${e.message}`); jobs = []; }
     for (const j of jobs) if (["queued", "running", "cancelling"].includes(j.state)) { j.state = "interrupted"; j.error = "H3 已重新启动，请检查输出后重新提交"; }
   }
@@ -34,10 +44,14 @@ function createIntegrationJobs({ rootDir, writeText, operations, cancel, isBusy 
       try {
         job.state = "running"; job.startedAt = Date.now(); save();
         const result = await operations[kind](payload);
+        await cancellations.get(job.id)?.catch(() => {});
         job.result = result;
         if (result?.ok === false) throw new Error(result.error || (result.canceled ? "任务已取消" : "处理未全部完成"));
         job.state = job.cancelRequested ? "cancelled" : "completed";
-      } catch (e) { job.state = job.cancelRequested ? "cancelled" : "failed"; job.error = e.message || "处理失败"; }
+      } catch (e) {
+        await cancellations.get(job.id)?.catch(() => {});
+        job.state = job.cancelRequested ? "cancelled" : "failed"; job.error = e.message || "处理失败";
+      }
       finally {
         job.completedAt = Date.now();
         try { save(); } catch (e) { job.persistenceError = `任务状态保存失败：${e.message}；请检查磁盘后重启 H3`; persistenceFailure = job.persistenceError; }
@@ -48,15 +62,21 @@ function createIntegrationJobs({ rootDir, writeText, operations, cancel, isBusy 
   }
   async function stop(id) {
     load();
+    if (cancellations.has(id)) return cancellations.get(id);
     const job = jobs.find(j => j.id === id);
     if (!job) throw new Error("找不到任务");
     if (job !== active) throw new Error("任务当前不可取消");
     job.cancelRequested = true;
-    let result;
-    try { result = await cancel(job.kind); } catch (e) { delete job.cancelRequested; throw e; }
-    if (result?.ok === false) { delete job.cancelRequested; throw new Error(result.error || "取消失败"); }
-    job.cancelRequested = true;
-    return snapshot(job);
+    const pending = (async () => {
+      try {
+        const result = await Promise.resolve().then(() => cancel(job.kind));
+        if (result?.ok === false) throw new Error(result.error || "取消失败");
+        return snapshot(job);
+      } catch (e) { delete job.cancelRequested; throw e; }
+      finally { cancellations.delete(id); }
+    })();
+    cancellations.set(id, pending);
+    return pending;
   }
   return { submit, stop, list() { load(); return jobs.map(snapshot); }, get(id) { load(); return snapshot(jobs.find(j=>j.id===id)); },
     progress(channel, value) { if (active && ((active.kind === "voice" && channel === "voice-progress") || (active.kind === "cutout-batch" && channel === "cutout-progress") || (active.kind !== "voice" && active.kind !== "cutout-batch" && channel === "ai-tool-progress"))) active.progress = value; },

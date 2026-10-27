@@ -8,7 +8,8 @@ const registered=[...source.matchAll(/ipcMain\.handle\("([^"]+)"/g)].map(m=>m[1]
 const context=vm.createContext({URL,Buffer,studioApiToken:'test',studioApiPort:18480,
   app:{getVersion:()=> '1.1.16'},backendReady:true,aiToolState:()=>({}),getVoiceService:()=>({state:()=>({}),list:()=>[]}),generationStyles:[],
   studioHandlers:new Map(registered.map(name=>[name,async(event,...args)=>{invoked.push({name,event,args});return {ok:true}}])),
-  getIntegrationJobs:()=>({list:()=>[],submit:(kind,input,key)=>({id:'api-test',kind,input,key}),get:()=>null}),
+  getIntegrationJobs:()=>({list:()=>[],submit:(kind,input,key)=>{if(!input || typeof input !== 'object' || Array.isArray(input))throw Error('invalid input');return {id:'api-test',kind,input,key}},get:()=>null}),
+  readQueueJobs:()=>[{id:'queue-test',state:'queued'}],publicQueueJob:job=>({...job,state:'cancelled'}),
 });
 vm.runInContext(source.slice(source.indexOf('const integrationActionHandlers ='),source.indexOf('async function startStudioApi()')),context);
 async function request(method,url,body,auth='Bearer test'){
@@ -23,6 +24,11 @@ async function request(method,url,body,auth='Bearer test'){
  res=await request('POST','/api/v1/actions',{action:'video.clear',confirm:true,args:['t2v','records']});assert.equal(res.status,200);assert.equal(invoked[0].event.integration,true);
  res=await request('POST','/api/v1/actions',{action:'constructor',confirm:true});assert.equal(res.status,400);
  res=await request('POST','/api/v1/tasks',{kind:'voice',input:{text:'中文'}});assert.equal(res.status,202);assert.equal(res.body.job.key,'test-key');
+ for(const input of [null,false,0,'',[]]) {res=await request('POST','/api/v1/tasks',{kind:'voice',input});assert.equal(res.status,400)}
+ context.studioHandlers.set('cancel-queue-item',async()=>({ok:false,error:'disk full'}));
+ res=await request('POST','/api/v1/jobs/queue-test/cancel');assert.equal(res.status,400);assert.equal(res.body.error,'disk full');
+ context.studioHandlers.set('cancel-queue-item',async(event,id)=>{assert.equal(event.integration,true);assert.equal(id,'queue-test');return {ok:true}});
+ res=await request('POST','/api/v1/jobs/queue-test/cancel');assert.equal(res.status,200);assert.equal(res.body.job.state,'cancelled');
  res=await request('GET','/api/v1/tasks/missing');assert.equal(res.status,404);
  res=await request('GET','/api/v1/openapi.json');assert.equal(res.status,200);
  for(const [route,methods] of Object.entries(res.body.paths)) for(const op of Object.values(methods)) {assert.ok(op.responses,route);if(route.includes('{id}'))assert.equal(op.parameters[0].required,true)}

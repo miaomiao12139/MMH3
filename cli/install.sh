@@ -7,4 +7,6 @@ esac
 installer=$(mktemp --suffix=.ps1)
 trap 'rm -f "$installer"' EXIT
 curl --fail --location --silent --show-error https://raw.githubusercontent.com/miaomiao12139/MMH3/2248c5e62d49a09c8ed4292f13b8f2d6a32aff46/cli/install.ps1 -o "$installer"
-env -u PSModulePath powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w "$installer")" "$@"
+# Use Windows PowerShell's own bundled modules even from a clean or PS7 shell.
+module_root="$(cygpath -w "${WINDIR:-C:/Windows}/System32/WindowsPowerShell/v1.0/Modules")"
+PSModulePath="$module_root" powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w "$installer")" "$@"

@@ -1259,7 +1259,7 @@ function inferWorkflowFromOutput(relativeName) {
   return "";
 }
 
-function listVideoFiles(limit = 100) {
+function listVideoFiles(limit = 100, includeHidden = false) {
   const outputDir = path.resolve(rootDir(), "output");
   if (!fs.existsSync(outputDir)) return [];
   const metadata = readStudioHistory();
@@ -1267,12 +1267,14 @@ function listVideoFiles(limit = 100) {
   const files = [];
   const visit = (directory) => {
     for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      if (entry.isSymbolicLink()) continue;
       const fullPath = path.join(directory, entry.name);
       if (entry.isDirectory()) visit(fullPath);
-      else if (extensions.has(path.extname(entry.name).toLowerCase())) {
+      else if (entry.isFile() && extensions.has(path.extname(entry.name).toLowerCase())) {
         try {
           const stat = fs.statSync(fullPath);
           const relativeName = path.relative(outputDir, fullPath).replace(/\\/g, "/");
+          if (!includeHidden && metadata[relativeName]?.hidden) continue;
           files.push({
             path: fullPath,
             url: pathToFileURL(fullPath).href,
@@ -1298,12 +1300,18 @@ function listVideoFiles(limit = 100) {
   return files.sort((a, b) => b.modified - a.modified).slice(0, limit);
 }
 
-function outputFilePath(candidate) {
+function outputFilePath(candidate, videoOnly = true) {
   const outputDir = path.resolve(rootDir(), "output");
   const target = path.resolve(String(candidate || ""));
   const relative = path.relative(outputDir, target);
-  if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) return null;
-  return target;
+  if (!relative || relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) return null;
+  if (videoOnly && !/\.(mp4|webm|mov|mkv|avi)$/i.test(target)) return null;
+  try {
+    if (!fs.lstatSync(target).isFile()) return null;
+    const actual = path.relative(fs.realpathSync(outputDir), fs.realpathSync(target));
+    if (!actual || actual === ".." || actual.startsWith(`..${path.sep}`) || path.isAbsolute(actual)) return null;
+    return target;
+  } catch (_) { return null; }
 }
 
 function readStudioHistory() {
@@ -1427,7 +1435,7 @@ async function runWorkflow(_event, { workflow, prompt, originalPrompt = prompt, 
   applyGenerationSettings(graph, workflowId, settings);
   prompt = styledPrompt(prompt, settings.style);
   const [width, height] = outputSize(settings);
-  const aspectRatio = settings.aspectRatio === "9:16 (Portrait)" ? "9:16 (Portrait Widescreen)" : settings.aspectRatio;
+  const aspectRatio = ({ "1:1": "1:1 (Square)", "16:9": "16:9 (Widescreen)", "9:16": "9:16 (Portrait Widescreen)" })[String(settings.aspectRatio || "").split(" ")[0]] || settings.aspectRatio;
   Object.values(graph).forEach((node) => {
     if (node.class_type === "ResolutionSelector") {
       if (aspectRatio) node.inputs.aspect_ratio = aspectRatio;
@@ -2292,15 +2300,20 @@ ipcMain.handle("export-cutout-batch", async (_event, ids) => {
   if (result.canceled || !result.filePath) return { ok: false, canceled: true };
   if (process.platform !== "win32") return { ok: false, error: "当前便携版仅支持 Windows 导出 ZIP" };
   const quote = (value) => `'${String(value).replace(/'/g, "''")}'`;
-  const script = `$files=@(${files.map((item) => quote(item.path)).join(",")}); Compress-Archive -LiteralPath $files -DestinationPath ${quote(result.filePath)} -Force`;
+  const temporary = `${result.filePath}.${crypto.randomUUID()}.zip`;
+  const script = `$ErrorActionPreference='Stop'; $env:PSModulePath=Join-Path $PSHOME 'Modules'; $files=@(${[...new Set(files.map(item => item.path))].map(quote).join(",")}); Compress-Archive -LiteralPath $files -DestinationPath ${quote(temporary)} -Force`;
   return await new Promise((resolve) => {
     const child = spawn("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script], { windowsHide: true, stdio: ["ignore", "pipe", "pipe"] });
     let stderr = "";
     child.stderr.on("data", (chunk) => { stderr += chunk.toString(); });
     child.once("error", (error) => resolve({ ok: false, error: `导出失败：${error.message}` }));
     child.once("close", (code) => {
-      if (code === 0 && fs.existsSync(result.filePath)) resolve({ ok: true, path: result.filePath, count: files.length });
-      else resolve({ ok: false, error: stderr.trim() || "导出 ZIP 失败" });
+      try {
+        if (code !== 0 || !fs.existsSync(temporary)) throw new Error(stderr.trim() || "导出 ZIP 失败");
+        fs.renameSync(temporary, result.filePath);
+        resolve({ ok: true, path: result.filePath, count: files.length });
+      } catch (error) { resolve({ ok: false, error: error.message }); }
+      finally { try { fs.unlinkSync(temporary); } catch (_) {} }
     });
   });
 });
@@ -2409,8 +2422,9 @@ ipcMain.handle("delete-video", async (_event, filePath) => {
   }
 });
 ipcMain.handle("clear-videos", async (_event, workflowId = "", mode = "delete") => {
+  if (!["delete", "records"].includes(mode)) return { ok: false, error: "无效的清空模式，仅支持 delete 或 records" };
   let items;
-  try { items = listVideoFiles(Infinity).filter((item) => !workflowId || item.workflow === workflowId); }
+  try { items = listVideoFiles(Infinity, mode === "delete").filter((item) => !workflowId || item.workflow === workflowId); }
   catch (error) { return { ok: false, error: error.message }; }
   if (!items.length) return { ok: true, count: 0 };
   const recordsOnly = mode === "records";
@@ -2432,7 +2446,11 @@ ipcMain.handle("clear-videos", async (_event, workflowId = "", mode = "delete") 
     }
   }
   try {
-    for (const item of removed) delete metadata[path.relative(path.resolve(rootDir(), "output"), item.path).replace(/\\/g, "/")];
+    for (const item of removed) {
+      const key = path.relative(path.resolve(rootDir(), "output"), item.path).replace(/\\/g, "/");
+      if (recordsOnly) metadata[key] = { ...(metadata[key] || {}), hidden: true };
+      else delete metadata[key];
+    }
     if (removed.length) writeStudioHistory(metadata);
   } catch (error) {
     return { ok: false, count: removed.length, failed: failures.length, error: `已处理 ${removed.length} 个视频，但历史记录保存失败：${error.message}` };
@@ -2494,7 +2512,7 @@ ipcMain.handle("save-clipboard-image", (_event, payload = {}) => {
 });
 
 ipcMain.handle("reveal-video", (_event, filePath) => {
-  const target = outputFilePath(filePath);
+  const target = outputFilePath(filePath, false);
   if (!target || !fs.existsSync(target)) return { ok: false, error: "无效的输出文件" };
   shell.showItemInFolder(target);
   return { ok: true };

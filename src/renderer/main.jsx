@@ -43,8 +43,8 @@ const DEFAULT_PROMPT_PRESETS = [
 function persistValue(key, value) {
   localStorage.setItem(key, value);
   window.studio?.savePreference?.(key, value).then((result) => {
-    if (result?.ok === false) console.error("配置保存失败", result.error);
-  }).catch((error) => console.error("配置保存失败", error));
+    if (result?.ok === false) window.dispatchEvent(new CustomEvent("h3-preference-error", { detail: result.error }));
+  }).catch((error) => window.dispatchEvent(new CustomEvent("h3-preference-error", { detail: error.message })));
 }
 
 function newAssetId() {
@@ -489,6 +489,12 @@ function createComfyGuestScript(graph, workflowName, requestId, loadGraph = true
 }
 
 function App() {
+  const [preferenceError, setPreferenceError] = useState("");
+  useEffect(() => {
+    const onError = event => setPreferenceError(`配置保存失败：${event.detail || "请检查磁盘和文件权限"}`);
+    window.addEventListener("h3-preference-error", onError);
+    return () => window.removeEventListener("h3-preference-error", onError);
+  }, []);
   const initialDraft = useRef(readStoredObject(WORKFLOW_DRAFTS_KEY).i2v || {}).current;
   const [selected, setSelected] = useState(0);
   // Keep enough slots for a cutout batch while video workflows still expose
@@ -1928,6 +1934,7 @@ function App() {
          <div className="sidebar-footer"><i className={`dot ${engineReady ? "" : "offline"}`} /><span>本地引擎</span><small>{hardwareText}</small></div>
       </aside>
       <section className="content">
+        {preferenceError && <div className="generation-feedback" role="alert"><span>{preferenceError}</span><button onClick={() => setPreferenceError("")}>关闭提示</button></div>}
         <header className="page-header">
           <div className="content-heading"><h1>{aiToolsPage ? aiTools.find(item => item.id === aiToolKind)?.title : voicePage ? "语音合成" : queuePage ? "视频队列" : current.name}</h1><p>{aiToolsPage ? aiTools.find(item => item.id === aiToolKind)?.description : voicePage ? "将文字变成自然语音，为创作增添声音" : queuePage ? "按顺序管理本地视频生成任务" : current.id === "t2v" ? "将你的想法变成视频" : current.id === "i2v" ? "让静态画面拥有镜头运动" : current.id === "cutout" ? "自动移除背景，导出透明 PNG" : current.description || "用参考图保持角色与风格一致"}</p></div>
           <div className="page-tools">

@@ -20,10 +20,8 @@ function validatePreference(key, raw) {
 
 function createPreferenceStore(rootDir, writeText) {
   let state;
-  let timer;
   const location = () => path.join(rootDir(), "user", "studio-preferences.json");
   function flush() {
-    clearTimeout(timer);
     if (!state) return;
     fs.mkdirSync(path.dirname(location()), { recursive: true });
     writeText(location(), JSON.stringify({ runtimeRoot: rootDir(), values: state }, null, 2));
@@ -57,9 +55,10 @@ function createPreferenceStore(rootDir, writeText) {
     if (!String(key).startsWith("minimax-h3-") || typeof value !== "string") throw new Error("无效的配置项");
     if (!state) load();
     validatePreference(key, value);
-    state[key] = key === DRAFTS_KEY ? JSON.stringify(restoreDraftAssets(JSON.parse(value), JSON.parse(state[COPIES_KEY] || "[]"))) : value;
-    clearTimeout(timer);
-    timer = setTimeout(() => { try { flush(); } catch (error) { console.error("配置保存失败", error); } }, 250);
+    const previous = state;
+    state = { ...state, [key]: key === DRAFTS_KEY ? JSON.stringify(restoreDraftAssets(JSON.parse(value), JSON.parse(state[COPIES_KEY] || "[]"))) : value };
+    try { flush(); }
+    catch (error) { state = previous; throw new Error(`配置保存失败：${error.message}`); }
     return { ok: true };
   }
   function values() { return state || {}; }

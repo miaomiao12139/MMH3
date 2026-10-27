@@ -51,7 +51,11 @@ export default function VoiceWorkspace({ active }) {
   }, [active]);
   useEffect(() => {
     if (!restored) return;
-    const timer = setTimeout(() => { window.studio.savePreference(DRAFT_KEY, JSON.stringify({ text, speed, engine, voice })).catch(console.error); }, 400);
+    const timer = setTimeout(() => {
+      window.studio.savePreference(DRAFT_KEY, JSON.stringify({ text, speed, engine, voice })).then(result => {
+        if (result?.ok === false) throw new Error(result.error || "写入失败");
+      }).catch(e => { setError(true); setStatus(`语音草稿保存失败：${e.message}`); });
+    }, 400);
     return () => clearTimeout(timer);
   }, [text, speed, engine, voice, restored]);
   useEffect(() => {
@@ -60,6 +64,7 @@ export default function VoiceWorkspace({ active }) {
   useEffect(() => window.studio?.onVoiceProgress?.(event => {
     setBusy(Boolean(event.busy));
     if (event.message) { setError(false); setStatus(event.message); }
+    if (!event.busy) refresh().catch(e => { setError(true); setStatus(e.message); });
   }), []);
   useEffect(() => { if (!active) player.current?.pause(); }, [active]);
 
@@ -98,6 +103,11 @@ export default function VoiceWorkspace({ active }) {
   }
   async function remove(item) {
     if (!window.confirm("删除这段生成的语音及其记录？")) return;
+    if (player.current?.dataset.voicePath === item.path) {
+      playbackRequest.current += 1;
+      player.current.pause();
+      setPlayingPath("");
+    }
     await action(async () => { const result = await window.studio.deleteVoice(item.path); if (result.ok) await refresh(); return result; });
   }
   async function clearAll() {

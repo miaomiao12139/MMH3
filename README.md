@@ -11,7 +11,7 @@ irm https://raw.githubusercontent.com/miaomiao12139/MMH3/8a135aa/cli/install.ps1
 Windows Git Bash：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/miaomiao12139/MMH3/8a135aa/cli/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/miaomiao12139/MMH3/eb87ec8/cli/install.sh | bash
 ```
 
 需要已安装 H3 1.1.16+ 并打开桌面程序。自定义位置可下载 install.ps1 后运行 `powershell -File .\install.ps1 -AppRoot "D:\H3\App"`。安装包按发布版本下载并校验 SHA256；仅安装 Python 标准库客户端和 Skill，不下载数十 GB 的模型。H3 引擎目前支持 Windows x64。

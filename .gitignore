@@ -15,3 +15,7 @@ input/
 output/
 user/
 
+
+__pycache__/
+*.pyc
+tmp-preview-frames/

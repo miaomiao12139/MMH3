@@ -1,16 +1,17 @@
 {
   "name": "minimax-h3-studio",
-  "version": "1.0.2",
+  "version": "1.1.16",
   "description": "Offline MiniMax H3 video generation studio",
   "author": "MiniMax H3 Studio",
   "private": true,
   "main": "src/main.cjs",
   "scripts": {
     "build": "vite build",
-    "test": "node test/smoke.mjs",
+    "test": "node test/smoke.mjs && node test/cutout-ui.mjs && node test/runtime-regressions.cjs && node test/generation-upgrade.cjs && node test/logic-regressions.cjs && node test/self-audit.cjs && node test/deep-audit.cjs && node test/file-lifecycle-audit.cjs && node test/recovery-history-audit.cjs && node test/cutout-storage-audit.cjs && node test/voice-service.cjs && node test/ai-tools.cjs && node test/audit-queue-persistence.cjs && node test/integration-jobs.cjs && node test/integration-api.cjs",
     "dist": "npm run build && electron-builder --win portable"
   },
   "dependencies": {
+    "lucide-react": "^1.42.0",
     "react": "latest",
     "react-dom": "latest",
     "ws": "latest"
@@ -24,8 +25,52 @@
   "build": {
     "appId": "com.minimax.h3.studio",
     "productName": "MiniMax H3 Studio",
-    "directories": { "output": "release" },
-    "files": ["dist/**/*", "src/main.cjs", "src/preload.cjs"],
-    "portable": { "artifactName": "MiniMax H3 Studio.exe" }
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "src/main.cjs",
+      "src/preload.cjs",
+      "src/cutout.cjs",
+      "src/runtime.cjs",
+      "src/preferences.cjs",
+      "src/update-runner.ps1",
+      "src/generation.cjs",
+      "src/generation-profiles.json",
+      "src/outputs.cjs",
+      "src/segmentation.cjs",
+      "src/voice.cjs",
+      "src/integration-jobs.cjs"
+    ],
+    "extraResources": [
+      {
+        "from": "src/h3_interactive_segment.py",
+        "to": "runtime/h3_interactive_segment.py"
+      },
+      {
+        "from": "workflows",
+        "to": "workflows",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "src/video-input.py",
+        "to": "runtime/video-input.py"
+      },
+      {
+        "from": "src/voice-worker.py",
+        "to": "runtime/voice-worker.py"
+      },
+      {
+        "from": "cli",
+        "to": "cli",
+        "filter": ["**/*", "!**/__pycache__/**", "!**/*.pyc"]
+      }
+    ],
+    "portable": {
+      "artifactName": "MiniMax H3 Studio.exe"
+    }
   }
 }

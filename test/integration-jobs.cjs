@@ -1,0 +1,42 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const {createIntegrationJobs} = require('../src/integration-jobs.cjs');
+async function main() {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'h3-api-test-'));
+  let finish, calls = 0, failWrite = false, cancelled = 0;
+  const options = {rootDir:()=>root, writeText:(file,text)=>{if(failWrite) throw Error('disk full');fs.writeFileSync(file,text)}, isBusy:()=>false,
+    operations:{test:()=>{calls++;return new Promise(r=>finish=r)}}, cancel:async()=>{cancelled++;return {ok:true}}};
+  const jobs = createIntegrationJobs(options);
+  failWrite = true;
+  assert.throws(()=>jobs.submit('test',{},'a'),/disk full/);
+  assert.equal(calls,0);
+  failWrite = false;
+  const first = jobs.submit('test',{},'a');
+  assert.equal(calls,1);
+  assert.equal(jobs.submit('test',{},'a').id,first.id);
+  assert.throws(()=>jobs.submit('test',{x:1},'a'),/Idempotency/);
+  assert.throws(()=>jobs.submit('test',{}),/正忙/);
+  await assert.rejects(jobs.stop('other'),/找不到/);
+  assert.equal(cancelled,0);
+  await jobs.stop(first.id);
+  finish({ok:true,resultPath:'result.png'});
+  await new Promise(r=>setImmediate(r));
+  assert.equal(jobs.get(first.id).state,'cancelled');
+  assert.equal(jobs.busy,false);
+  await assert.rejects(jobs.stop(first.id),/不可取消/);
+  const second=jobs.submit('test',{});
+  const recovered=createIntegrationJobs(options);
+  assert.equal(recovered.get(second.id).state,'interrupted');
+  finish({ok:false,error:'model unavailable'});
+  await new Promise(r=>setImmediate(r));
+  assert.equal(jobs.get(second.id).state,'failed');
+  fs.writeFileSync(path.join(root,'user','integration-jobs.json'),'{broken');
+  const damaged=createIntegrationJobs(options);
+  assert.throws(()=>damaged.list(),/损坏/);
+  assert.throws(()=>damaged.list(),/损坏/);
+  fs.rmSync(root,{recursive:true,force:true});
+  console.log('Integration jobs passed: persistence, idempotency, busy, scoped cancel, recovery, failure and corruption.');
+}
+main().catch(e=>{console.error(e);process.exitCode=1});

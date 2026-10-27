@@ -1,0 +1,135 @@
+.cutout-page { min-width: 0; --cutout-stage-height: clamp(260px, 40vh, 440px); letter-spacing: 0; }
+.cutout-workbench { display: grid; grid-template-columns: minmax(0, 1fr); }
+.cutout-pane { min-width: 0; }
+.cutout-pane-heading { display: flex; height: 38px; align-items: center; justify-content: space-between; gap: 12px; }
+.cutout-pane-heading h2 { display: flex; align-items: center; gap: 9px; margin: 0; color: var(--text); font-size: 14px; font-weight: 600; }
+.cutout-pane-heading h2 span, .cutout-format { color: var(--muted); font-size: 12px; font-weight: 400; }
+.cutout-page button { letter-spacing: 0; }
+.cutout-text-button { display: inline-flex; min-height: 32px; align-items: center; justify-content: center; gap: 7px; padding: 0 8px; color: var(--muted); background: transparent; font-size: 12px; border-radius: 6px; }
+.cutout-text-button:hover { color: var(--text); background: var(--surface-soft); }
+.cutout-source-frame, .cutout-output-frame { position: relative; height: var(--cutout-stage-height); overflow: hidden; border-radius: 8px; background: var(--surface-soft); }
+.cutout-source-frame.is-dragging { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--accent-soft); }
+.cutout-source-preview, .cutout-result-preview { position: absolute; inset: 0; display: block; width: 100%; height: 100%; padding: 16px; background: transparent; cursor: zoom-in; }
+.cutout-source-preview img, .cutout-result-preview img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.cutout-upload { display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; flex-direction: column; gap: 12px; padding: 24px; color: var(--muted); background: transparent; }
+.cutout-upload:hover { color: var(--accent); background: var(--accent-soft); }
+.cutout-upload strong { color: var(--text); font-size: 14px; font-weight: 500; text-align: center; }
+.cutout-upload span { color: var(--muted); font-size: 12px; }
+.cutout-frame-tools { position: absolute; top: 10px; right: 10px; display: flex; gap: 4px; }
+.cutout-frame-tools button, .cutout-tool-button, .cutout-history-copy button { display: grid; width: 30px; height: 30px; flex: 0 0 30px; place-items: center; padding: 0; color: var(--muted); background: var(--surface); border-radius: 6px; }
+.cutout-frame-tools button:hover, .cutout-tool-button:hover, .cutout-history-copy button:hover { color: var(--text); background: var(--accent-soft); }
+.cutout-pane-caption { display: flex; min-width: 0; height: 36px; align-items: center; justify-content: space-between; gap: 12px; color: var(--muted); font-size: 12px; }
+.cutout-pane-caption > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cutout-pane-caption small { flex-shrink: 0; font-size: 12px; font-variant-numeric: tabular-nums; }
+.cutout-checkerboard { --checker-color: rgba(113, 113, 122, .10); background-color: var(--surface); background-image: conic-gradient(var(--checker-color) 25%, transparent 0 50%, var(--checker-color) 0 75%, transparent 0); background-size: 20px 20px; }
+.cutout-result-empty { display: flex; height: 100%; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--muted); font-size: 12px; }
+.cutout-action-bar { display: flex; min-height: 68px; align-items: center; justify-content: space-between; gap: 24px; padding: 8px 0; }
+.cutout-feedback { min-width: 0; color: var(--muted); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.cutout-feedback.is-error { color: #c45a69; }
+.cutout-action-bar > div { display: flex; flex-shrink: 0; align-items: center; gap: 18px; }
+.cutout-run { display: inline-flex; height: 42px; min-width: 150px; align-items: center; justify-content: center; gap: 16px; padding: 0 18px; border-radius: 7px; color: #fff; background: var(--accent); font-size: 13px; font-weight: 600; }
+.cutout-run:hover { background: #5558d8; }
+.cutout-page button:disabled { cursor: not-allowed; opacity: .45; }
+.cutout-page button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.cutout-history { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
+.cutout-tool-button { background: transparent; }
+.cutout-history-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 210px)); gap: 16px; margin-top: 10px; }
+.cutout-history-item { min-width: 0; overflow: hidden; border-radius: 8px; background: var(--surface); }
+.cutout-history-preview { display: block; width: 100%; aspect-ratio: 4 / 3; padding: 12px; cursor: zoom-in; }
+.cutout-history-preview img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.cutout-history-copy { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 5px 8px; padding: 10px; }
+.cutout-history-copy strong { grid-column: 1 / -1; overflow: hidden; color: var(--text); font-size: 12px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.cutout-history-copy small { align-self: center; color: var(--muted); font-size: 12px; }
+.cutout-history-copy > div { display: flex; gap: 2px; }
+.cutout-history-copy button { width: 26px; height: 26px; }
+.cutout-history-empty { padding: 24px 0 32px; color: var(--muted); font-size: 12px; }
+.cutout-history-tools { display: flex; align-items: center; gap: 8px; }
+.cutout-history-tools .cutout-text-button { min-height: 30px; }
+.cutout-preview-modal { width: auto; max-width: min(1000px, calc(100vw - 48px)); max-height: calc(100vh - 56px); padding: 18px 22px 14px; box-sizing: border-box; }
+.cutout-preview-modal > img { max-width: min(720px, calc(100vw - 100px)); max-height: calc(100vh - 150px); background-color: transparent; background-image: conic-gradient(rgba(113, 113, 122, .10) 25%, transparent 0 50%, rgba(113, 113, 122, .10) 0 75%, transparent 0); background-size: 20px 20px; }
+.cutout-page .is-spinning { animation: cutout-spin 1s linear infinite; }
+@keyframes cutout-spin { to { transform: rotate(360deg); } }
+@media (max-width: 1180px) { .cutout-workbench { gap: 16px; } }
+@media (max-width: 680px) { .cutout-workbench { grid-template-columns: minmax(0, 1fr); }.cutout-action-bar { align-items: stretch; flex-direction: column; gap: 12px; }.cutout-action-bar > div { justify-content: space-between; } }
+
+/* Multi-image cutout workspace */
+.cutout-source-frame { overflow: auto; cursor: pointer; }
+.cutout-source-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(126px, 180px)); align-content: start; gap: 10px; min-height: 100%; padding: 14px; }
+.cutout-source-card { position: relative; min-width: 0; overflow: hidden; border-radius: 7px; background: var(--surface); cursor: default; }
+.cutout-source-preview { position: relative; inset: auto; display: block; width: 100%; height: auto; aspect-ratio: 1.15; padding: 8px; background: transparent; cursor: zoom-in; }
+.cutout-source-preview img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.cutout-broken-image { display: flex; height: 100%; align-items: center; justify-content: center; flex-direction: column; gap: 5px; color: var(--muted); }
+.cutout-broken-image small { font-size: 12px; }
+.cutout-card-caption { overflow: hidden; padding: 6px 8px 8px; color: var(--muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.cutout-source-card .cutout-frame-tools { top: 6px; right: 6px; }
+.cutout-source-card .cutout-frame-tools button { width: 26px; height: 26px; }
+.cutout-upload-tile { display: flex; min-width: 0; aspect-ratio: 1.15; align-items: center; justify-content: center; flex-direction: column; gap: 7px; padding: 12px; color: var(--muted); background: transparent; border: 1px dashed var(--line); border-radius: 7px; }
+.cutout-upload-tile:hover { color: var(--accent); background: var(--accent-soft); border-color: var(--accent); }
+.cutout-upload-tile strong { color: var(--text); font-size: 12px; font-weight: 500; text-align: center; }
+.cutout-upload-tile span { color: var(--muted); font-size: 12px; line-height: 1.4; text-align: center; }
+.cutout-drop-hint { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 7px; pointer-events: none; color: var(--muted); font-size: 12px; }
+.cutout-drop-hint strong { color: var(--text); font-size: 13px; font-weight: 500; }
+.cutout-drop-hint span { font-size: 12px; }
+.cutout-result-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(116px, 1fr)); gap: 10px; width: 100%; height: 100%; align-content: start; overflow: auto; padding: 14px; }
+.cutout-result-preview { position: relative; inset: auto; display: block; width: 100%; height: auto; aspect-ratio: 1.15; padding: 8px; background: transparent; cursor: zoom-in; }
+.cutout-result-preview img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.cutout-result-preview.is-latest { outline: 1px solid var(--accent); outline-offset: -1px; }
+.cutout-output-frame:has(.cutout-result-grid) { padding: 0; }
+.cutout-action-bar > .cutout-run { flex-shrink: 0; }
+@media (max-width: 680px) { .cutout-source-grid, .cutout-result-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Batch controls stay compact and keep the primary action in the same visual flow. */
+.cutout-heading-actions { display: flex; align-items: center; gap: 6px; }
+.cutout-clear-inputs { color: var(--muted); }
+.cutout-source-card { transition: opacity .15s ease, transform .15s ease; }
+.cutout-source-card.is-selected { outline: 2px solid var(--accent); outline-offset: -2px; }
+.cutout-source-card[draggable="true"] { cursor: grab; }
+.cutout-source-card[draggable="true"]:active { cursor: grabbing; }
+.cutout-source-card.is-reordering { opacity: .48; transform: scale(.98); }
+.cutout-upload-tile { border: 1px dashed var(--line); }
+.cutout-background-tools { position: absolute; z-index: 2; top: 10px; left: 10px; display: flex; gap: 3px; padding: 3px; border-radius: 6px; background: color-mix(in srgb, var(--surface) 88%, transparent); }
+.cutout-background-tools button { display: grid; width: 24px; height: 24px; place-items: center; padding: 0; color: var(--muted); background: transparent; border-radius: 4px; font-size: 12px; }
+.cutout-background-tools button:hover, .cutout-background-tools button.active { color: var(--text); background: var(--accent-soft); }
+.cutout-white { background: #fff; }
+.cutout-gray { background: #9a9ca2; }
+.cutout-black { background: #111; }
+.cutout-white .cutout-background-tools, .cutout-gray .cutout-background-tools, .cutout-black .cutout-background-tools { background: rgba(255,255,255,.88); }
+.cutout-black .cutout-background-tools button { color: #4d515a; }
+.cutout-batch-panel, .cutout-options { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+.cutout-batch-head, .cutout-options-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.cutout-batch-head > div:first-child { display: flex; align-items: baseline; gap: 10px; }
+.cutout-batch-head strong, .cutout-options-heading > span { color: var(--text); font-size: 13px; font-weight: 600; }
+.cutout-batch-head span, .cutout-options-heading small { color: var(--muted); font-size: 12px; }
+.cutout-batch-actions { display: flex; align-items: center; gap: 8px; }
+.cutout-cancel-button { display: inline-flex; height: 30px; align-items: center; gap: 5px; padding: 0 9px; color: #bd5965; background: transparent; border: 1px solid color-mix(in srgb, #bd5965 35%, var(--line)); border-radius: 6px; font-size: 12px; }
+.cutout-cancel-button:hover { background: color-mix(in srgb, #bd5965 9%, transparent); }
+.cutout-batch-progress { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.cutout-batch-progress > div { height: 5px; flex: 1; overflow: hidden; background: var(--surface-soft); border-radius: 5px; }
+.cutout-batch-progress i { display: block; height: 100%; background: var(--accent); border-radius: inherit; transition: width .2s ease; }
+.cutout-batch-progress b { width: 34px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; text-align: right; }
+.cutout-task-list { display: grid; gap: 4px; max-height: 170px; margin-top: 9px; overflow: auto; }
+.cutout-task { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto auto; gap: 8px; min-height: 28px; align-items: center; padding: 0 8px; color: var(--muted); background: color-mix(in srgb, var(--surface-soft) 65%, transparent); border-radius: 5px; font-size: 12px; }
+.cutout-task-index { color: var(--muted); font-variant-numeric: tabular-nums; }
+.cutout-task-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cutout-task-status { color: var(--muted); }
+.cutout-task-running .cutout-task-status { color: var(--accent); }
+.cutout-task-completed .cutout-task-status { color: #3b9b75; }
+.cutout-task-failed .cutout-task-status, .cutout-task-cancelled .cutout-task-status { color: #bd5965; }
+.cutout-task-percent { width: 34px; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+.cutout-history-copy .cutout-open-location-button { display: inline-flex; width: auto; min-width: 88px; height: 26px; align-items: center; justify-content: center; padding: 0 7px; color: var(--muted); background: transparent; border-radius: 5px; font-size: 12px; white-space: nowrap; }
+.cutout-history-copy .cutout-open-location-button:hover { color: var(--text); background: var(--accent-soft); }
+.cutout-history-copy .cutout-delete-button { width: 26px; height: 26px; }
+.asset-library-head-actions { display: flex; align-items: center; gap: 8px; }
+.cutout-options-heading { margin-bottom: 10px; }
+.cutout-options-grid { display: flex; flex-wrap: wrap; align-items: end; gap: 10px 14px; }
+.cutout-options-grid label { display: grid; min-width: 136px; gap: 5px; color: var(--muted); font-size: 12px; }
+.cutout-options-grid select, .cutout-options-grid input:not([type="checkbox"]) { height: 30px; padding: 0 8px; color: var(--text); background: var(--surface-soft); border: 1px solid var(--line); border-radius: 5px; font-size: 12px; }
+.cutout-options-grid select:focus, .cutout-options-grid input:focus { border-color: var(--accent); outline: none; }
+.cutout-options-grid .cutout-check-label { display: flex; min-width: auto; height: 30px; align-items: center; grid-template-columns: auto 1fr; gap: 6px; }
+.cutout-options-grid input[type="checkbox"] { width: 14px; height: 14px; accent-color: var(--accent); }
+.cutout-compare { display: grid; width: min(900px, calc(100vw - 100px)); max-height: calc(100vh - 150px); grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.cutout-compare > div { display: grid; width: 100%; height: min(58vh, 520px); min-width: 0; min-height: 220px; max-height: calc(100vh - 170px); grid-template-rows: auto minmax(0, 1fr); gap: 8px; overflow: hidden; color: var(--muted); font-size: 12px; }
+.cutout-compare > div > span { padding-left: 2px; }
+.cutout-compare > div > img { display: block; width: 100%; height: 100%; min-height: 0; object-fit: contain; background-color: #fff; background-image: conic-gradient(rgba(113, 113, 122, .10) 25%, transparent 0 50%, rgba(113, 113, 122, .10) 0 75%, transparent 0); background-size: 20px 20px; border-radius: 6px; }
+@media (max-width: 680px) { .cutout-batch-head, .cutout-options-heading { align-items: flex-start; flex-direction: column; }.cutout-options-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }.cutout-options-grid label { min-width: 0; }.cutout-compare { width: min(100%, calc(100vw - 52px)); max-height: calc(100vh - 130px); grid-template-columns: minmax(0, 1fr); }.cutout-compare > div { max-height: 38vh; } }
+.cutout-missing-result { display: grid; height: 100%; align-content: center; padding: 20px; color: var(--muted); font-size: 12px; line-height: 1.8; text-align: center; }

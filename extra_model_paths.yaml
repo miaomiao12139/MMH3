@@ -4,4 +4,10 @@ comfyui:
   text_encoders: models/text_encoders/
   vae: models/vae/
   loras: models/loras/
+  embeddings: models/embeddings/
+  model_patches: models/model_patches/
+  checkpoints: models/checkpoints/
+  controlnet: models/controlnet/
+  upscale_models: models/upscale_models/
+  frame_interpolation: models/frame_interpolation/
   custom_nodes: ComfyUI/custom_nodes/

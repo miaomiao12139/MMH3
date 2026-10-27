@@ -1,0 +1,7 @@
+# Match the bundled ComfyUI requirements without replacing the CUDA/PyTorch runtime.
+comfyui-frontend-package==1.55.18
+comfyui-workflow-templates==0.11.90
+comfyui-embedded-docs==0.5.14
+comfy-kitchen==0.2.39
+comfy-aimdo==0.5.6
+mobile_sam @ https://github.com/ChaoningZhang/MobileSAM/archive/f706ad9c4eb7f219c00d9050e46328518ffb65d2.zip

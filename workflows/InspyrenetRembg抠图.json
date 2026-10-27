@@ -1,0 +1,22 @@
+{
+  "14": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "input.png"
+    }
+  },
+  "10": {
+    "class_type": "InspyrenetRembg",
+    "inputs": {
+      "image": ["14", 0],
+      "torchscript_jit": "default"
+    }
+  },
+  "16": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": ["10", 0],
+      "filename_prefix": "ai_cutout"
+    }
+  }
+}

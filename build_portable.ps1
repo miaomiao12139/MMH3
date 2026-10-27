@@ -48,6 +48,9 @@ if ($LASTEXITCODE -gt 7) { throw "Python copy failed, robocopy code=$LASTEXITCOD
 $venvConfig = Join-Path $destination 'python\pyvenv.cfg'
 if (Test-Path -LiteralPath $venvConfig) { Remove-Item -LiteralPath $venvConfig -Force }
 
+& (Join-Path $destination 'python\python.exe') -m pip install -r (Join-Path $root 'runtime-requirements.txt')
+if ($LASTEXITCODE -ne 0) { throw 'Matching ComfyUI runtime dependencies could not be installed.' }
+
 if (-not $SkipModels) {
   $modelMap = @(
     @{ Name='minimax_h3_fl2va_pruned_int8_convrot.safetensors'; Source=(Join-Path $ComfyInstall 'models\diffusion_models'); Target='models\diffusion_models' },
@@ -70,5 +73,25 @@ if (-not $SkipModels) {
 }
 
 $sourceWorkflows = Join-Path $root 'workflows'
+$destinationWorkflows = Join-Path $destination 'workflows'
 Ensure-Directory $sourceWorkflows
+Ensure-Directory $destinationWorkflows
+
+# Keep the runtime copy in sync with the manifests used by the Electron bundle.
+# This matters when a portable runtime is assembled into a separate directory;
+# otherwise a newly added workflow can be absent from the first lookup location.
+$workflowFiles = @(Get-ChildItem -LiteralPath $sourceWorkflows -Filter '*.json' -File)
+if (-not $workflowFiles.Count) { throw "No workflow manifests were found in $sourceWorkflows" }
+$sourceWorkflowRoot = [IO.Path]::GetFullPath($sourceWorkflows)
+$destinationWorkflowRoot = [IO.Path]::GetFullPath($destinationWorkflows)
+if ($sourceWorkflowRoot -ne $destinationWorkflowRoot) {
+  Copy-Item -LiteralPath ($workflowFiles.FullName) -Destination $destinationWorkflows -Force
+}
+foreach ($workflow in $workflowFiles) {
+  $target = Join-Path $destinationWorkflows $workflow.Name
+  if (-not (Test-Path -LiteralPath $target -PathType Leaf)) {
+    throw "Workflow manifest was not staged: $target"
+  }
+}
+
 Write-Host 'Portable package is ready. Run the launcher CMD file.'

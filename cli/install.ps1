@@ -1,8 +1,9 @@
 param(
   [string]$AppRoot,
   [string]$InstallDir = "$env:LOCALAPPDATA\H3CLI",
-  [string]$Version = 'v1.1.16',
-  [switch]$SkipSkill
+  [string]$Version = 'cli-v1.1.19',
+  [switch]$SkipSkill,
+  [switch]$NoPath
 )
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -12,12 +13,14 @@ if (-not $localBundle) {
   $tempDir = Join-Path ([IO.Path]::GetTempPath()) ('h3-cli-' + [guid]::NewGuid().ToString('N'))
   New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
   $base = "https://github.com/miaomiao12139/MMH3/releases/download/$Version"
-  $zip = Join-Path $tempDir 'H3-CLI-1.1.16-r2.zip'
-  Invoke-WebRequest "$base/H3-CLI-1.1.16-r2.zip" -OutFile $zip -UseBasicParsing
+  $archiveName = 'H3-CLI-' + ($Version -replace '^(cli-)?v', '') + '.zip'
+  $zip = Join-Path $tempDir $archiveName
+  Invoke-WebRequest "$base/$archiveName" -OutFile $zip -UseBasicParsing
   $checksFile = Join-Path $tempDir 'SHA256SUMS.txt'
-  Invoke-WebRequest "$base/SHA256SUMS-1.1.16-r2.txt" -OutFile $checksFile -UseBasicParsing
+  Invoke-WebRequest "$base/SHA256SUMS.txt" -OutFile $checksFile -UseBasicParsing
   $checks = Get-Content -LiteralPath $checksFile -Raw -Encoding UTF8
-  $line = @($checks -split "`n" | Where-Object { $_ -match '^([0-9a-fA-F]{64})\s+H3-CLI-1\.1\.16-r2\.zip\s*$' })
+  $checksumPattern = '^([0-9a-fA-F]{64})\s+' + [regex]::Escape($archiveName) + '\s*$'
+  $line = @($checks -split "`n" | Where-Object { $_ -match $checksumPattern })
   if ($line.Count -ne 1) { throw 'Missing or ambiguous release checksum' }
   $expected = ($line[0] -split '\s+')[0]
   if ((Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash -ne $expected) { throw 'CLI archive checksum mismatch' }
@@ -26,7 +29,8 @@ if (-not $localBundle) {
 }
 if (-not $AppRoot -and $env:H3_APP_ROOT) { $AppRoot = $env:H3_APP_ROOT }
 if (-not $AppRoot -and (Test-Path -LiteralPath "$env:LOCALAPPDATA\H3CLI\config.json")) {
-  $AppRoot = (Get-Content -LiteralPath "$env:LOCALAPPDATA\H3CLI\config.json" -Raw | ConvertFrom-Json).appRoot
+  try { $AppRoot = (Get-Content -LiteralPath "$env:LOCALAPPDATA\H3CLI\config.json" -Raw -Encoding UTF8 | ConvertFrom-Json).appRoot }
+  catch { Write-Warning 'Saved CLI configuration is invalid; trying local H3 installation.' }
 }
 if (-not $AppRoot -and (Test-Path -LiteralPath 'Z:\MiniMax-H3-Studio\App\python\python.exe')) { $AppRoot = 'Z:\MiniMax-H3-Studio\App' }
 if ($AppRoot) { $AppRoot = (Resolve-Path -LiteralPath $AppRoot).Path }
@@ -41,14 +45,16 @@ if ([IO.Path]::GetFullPath($bundle) -ne $InstallDir) {
   Copy-Item -LiteralPath (Join-Path $bundle 'skills') -Destination $InstallDir -Recurse -Force
 }
 if ($pythonExe.Contains('%') -or $InstallDir.Contains('%')) { throw 'Paths containing % are unsupported by the CMD launcher' }
-$launcher = "@echo off`r`nsetlocal`r`nset PYTHONUTF8=1`r`n`"$pythonExe`" `"$InstallDir\h3.py`" %*`r`nexit /b %errorlevel%`r`n"
-[IO.File]::WriteAllText((Join-Path $InstallDir 'h3.cmd'), $launcher, [Text.Encoding]::Default)
+$launcher = "@echo off`r`nsetlocal DisableDelayedExpansion`r`nfor /f `"tokens=2 delims=:`" %%C in ('chcp') do set H3_OLD_CP=%%C`r`nchcp 65001 >nul`r`nset PYTHONUTF8=1`r`n`"$pythonExe`" `"$InstallDir\h3.py`" %*`r`nset H3_EXIT=%errorlevel%`r`nchcp %H3_OLD_CP% >nul`r`nexit /b %H3_EXIT%`r`n"
+[IO.File]::WriteAllText((Join-Path $InstallDir 'h3.cmd'), $launcher, (New-Object Text.UTF8Encoding($false)))
+if (-not $NoPath) {
 $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
 if ($null -eq $userPath) { $userPath = '' }
 if (-not (($userPath -split ';') | Where-Object { $_.TrimEnd('\') -ieq $InstallDir.TrimEnd('\') })) {
   [Environment]::SetEnvironmentVariable('Path', (($userPath.TrimEnd(';') + ';' + $InstallDir).TrimStart(';')), 'User')
 }
 if (-not (($env:Path -split ';') -contains $InstallDir)) { $env:Path += ";$InstallDir" }
+}
 if (-not $SkipSkill) {
   & $pythonExe (Join-Path $InstallDir 'h3.py') skill install
   if ($LASTEXITCODE -ne 0) { throw 'Skill installation failed' }

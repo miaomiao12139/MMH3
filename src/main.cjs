@@ -2144,8 +2144,13 @@ ipcMain.handle("pause-queue", () => {
   return { ok: persisted, paused: true, message: "已暂停后续任务；当前正在执行的任务会继续完成", error: persisted ? "" : "暂停状态保存失败" };
 });
 ipcMain.handle("resume-queue", () => {
-  queuePaused = false;
   const persisted = writeQueuePaused(false);
+  if (!persisted) {
+    queuePaused = true;
+    emitQueue();
+    return { ok: false, paused: true, error: "继续状态保存失败，队列保持暂停，请检查磁盘后重试" };
+  }
+  queuePaused = false;
   processQueue();
   emitQueue();
   return { ok: persisted, paused: false, message: "已恢复队列", error: persisted ? "" : "继续状态保存失败" };

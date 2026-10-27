@@ -17,5 +17,14 @@ async function exercise(failAt) {
     const r=await exercise(failAt);assert.equal(r.started,0,'Never start GPU work when task state cannot be saved');assert.equal(r.job.state,'queued');assert.equal(r.context.activeQueueJobId,'');assert.equal(r.context.queuePaused,true);
   }
   const completed=await exercise(3);assert.equal(completed.started,1);assert.equal(completed.job.state,'completed');assert.equal(completed.context.queuePaused,true,'Pause further jobs if completion cannot be saved');
+  for (const persisted of [false,true]) {
+    let handler, started=0;
+    const context=vm.createContext({queuePaused:true,writeQueuePaused:()=>persisted,processQueue:()=>started++,emitQueue(){},ipcMain:{handle:(_name,fn)=>handler=fn}});
+    vm.runInContext(source.slice(source.indexOf('ipcMain.handle("resume-queue"'),source.indexOf('ipcMain.handle("cancel-queue-item"')),context);
+    const result=handler();
+    assert.equal(result.ok,persisted);
+    assert.equal(context.queuePaused,!persisted);
+    assert.equal(started,persisted?1:0,'Never resume generation when the pause state cannot be persisted');
+  }
   console.log('Queue persistence passed: failed preparation/running writes block generation, failed completion write pauses queue.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

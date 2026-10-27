@@ -36,6 +36,7 @@ export default function IntegrationSettings({ onClose }) {
     return () => { disposed = true; clearTimeout(timer.current); previous?.focus?.(); };
   }, []);
   async function copy(id, text) {
+    clearTimeout(timer.current); setCopied("");
     try {
       const result = await window.studio.copyText(text);
       if (!result?.ok) throw new Error(result?.error || "复制失败，请选中文字手动复制");
@@ -50,7 +51,7 @@ export default function IntegrationSettings({ onClose }) {
   const sampleCommand = `'${JSON.stringify(samples[sample][1])}' | Set-Content -Encoding UTF8 h3-input.json\nh3 ${sample === "video" ? "generate" : `task ${kind}`} --input "@h3-input.json" --wait`;
   const descriptor = info ? psQuote(info.descriptorPath) : "";
   const apiSetup = `$h3 = Get-Content -LiteralPath ${descriptor} -Raw | ConvertFrom-Json\n$headers = @{ Authorization = "Bearer $($h3.token)" }`;
-  const connectPrompt = `请帮我接入 H3 Studio 的全部本机功能，安装 CLI 与 Skill，执行：\n\nirm https://raw.githubusercontent.com/miaomiao12139/MMH3/8a135aa/cli/install.ps1 | iex\n\n安装后阅读 H3 Skill，连接当前安装目录 ${info?.appRoot || "（我的 H3 App 目录）"}，运行 h3 doctor 验证。之后通过 H3 完成我的视频生成、语音、图片/视频增强、补帧、抠图和图像理解请求。`;
+  const connectPrompt = `请帮我接入 H3 Studio 的全部本机功能，安装 CLI 与 Skill，执行：\n\nirm https://raw.githubusercontent.com/miaomiao12139/MMH3/8a135aa/cli/install.ps1 | iex\n\n安装后执行 h3 skill show 阅读使用说明，连接当前安装目录 ${info?.appRoot || "（我的 H3 App 目录）"}，运行 h3 doctor 验证。之后通过 H3 完成我的视频生成、语音、图片/视频增强、补帧、抠图和图像理解请求。`;
   function trapFocus(event) {
     if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); onClose(); return; }
     if (event.key !== "Tab") return;

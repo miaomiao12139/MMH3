@@ -12,12 +12,12 @@ if (-not $localBundle) {
   $tempDir = Join-Path ([IO.Path]::GetTempPath()) ('h3-cli-' + [guid]::NewGuid().ToString('N'))
   New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
   $base = "https://github.com/miaomiao12139/MMH3/releases/download/$Version"
-  $zip = Join-Path $tempDir 'H3-CLI.zip'
-  Invoke-WebRequest "$base/H3-CLI.zip" -OutFile $zip -UseBasicParsing
+  $zip = Join-Path $tempDir 'H3-CLI-1.1.16.zip'
+  Invoke-WebRequest "$base/H3-CLI-1.1.16.zip" -OutFile $zip -UseBasicParsing
   $checksFile = Join-Path $tempDir 'SHA256SUMS.txt'
-  Invoke-WebRequest "$base/SHA256SUMS.txt" -OutFile $checksFile -UseBasicParsing
+  Invoke-WebRequest "$base/SHA256SUMS-1.1.16.txt" -OutFile $checksFile -UseBasicParsing
   $checks = Get-Content -LiteralPath $checksFile -Raw -Encoding UTF8
-  $line = @($checks -split "`n" | Where-Object { $_ -match '^([0-9a-fA-F]{64})\s+H3-CLI\.zip\s*$' })
+  $line = @($checks -split "`n" | Where-Object { $_ -match '^([0-9a-fA-F]{64})\s+H3-CLI-1\.1\.16\.zip\s*$' })
   if ($line.Count -ne 1) { throw 'Missing or ambiguous release checksum' }
   $expected = ($line[0] -split '\s+')[0]
   if ((Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash -ne $expected) { throw 'CLI archive checksum mismatch' }

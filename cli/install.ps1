@@ -14,7 +14,9 @@ if (-not $localBundle) {
   $base = "https://github.com/miaomiao12139/MMH3/releases/download/$Version"
   $zip = Join-Path $tempDir 'H3-CLI.zip'
   Invoke-WebRequest "$base/H3-CLI.zip" -OutFile $zip -UseBasicParsing
-  $checks = (Invoke-WebRequest "$base/SHA256SUMS.txt" -UseBasicParsing).Content
+  $checksFile = Join-Path $tempDir 'SHA256SUMS.txt'
+  Invoke-WebRequest "$base/SHA256SUMS.txt" -OutFile $checksFile -UseBasicParsing
+  $checks = Get-Content -LiteralPath $checksFile -Raw -Encoding UTF8
   $line = @($checks -split "`n" | Where-Object { $_ -match '^([0-9a-fA-F]{64})\s+H3-CLI\.zip\s*$' })
   if ($line.Count -ne 1) { throw 'Missing or ambiguous release checksum' }
   $expected = ($line[0] -split '\s+')[0]

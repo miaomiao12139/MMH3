@@ -6,5 +6,5 @@ case "$(uname -s)" in
 esac
 installer=$(mktemp --suffix=.ps1)
 trap 'rm -f "$installer"' EXIT
-curl --fail --location --silent --show-error https://raw.githubusercontent.com/miaomiao12139/MMH3/8a135aa/cli/install.ps1 -o "$installer"
+curl --fail --location --silent --show-error https://raw.githubusercontent.com/miaomiao12139/MMH3/2248c5e62d49a09c8ed4292f13b8f2d6a32aff46/cli/install.ps1 -o "$installer"
 env -u PSModulePath powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w "$installer")" "$@"

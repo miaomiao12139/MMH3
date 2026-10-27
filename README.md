@@ -1,17 +1,17 @@
 # MiniMax H3 Studio
 
-## CLI + Skill（1.1.16）
+## CLI + Skill（CLI 1.1.19）
 
 Windows PowerShell 一键安装（安装 CLI 与 Codex Skill，不重复下载模型）：
 
 ```powershell
-irm https://raw.githubusercontent.com/miaomiao12139/MMH3/8a135aa/cli/install.ps1 | iex
+irm https://raw.githubusercontent.com/miaomiao12139/MMH3/2248c5e62d49a09c8ed4292f13b8f2d6a32aff46/cli/install.ps1 | iex
 ```
 
 Windows Git Bash：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/miaomiao12139/MMH3/eb87ec8/cli/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/miaomiao12139/MMH3/658757ee421cabe9a5531072d7537aecb9aea78c/cli/install.sh | bash
 ```
 
 需要已安装 H3 1.1.16+ 并打开桌面程序。自定义位置可下载 install.ps1 后运行 `powershell -File .\install.ps1 -AppRoot "D:\H3\App"`。安装包按发布版本下载并校验 SHA256；仅安装 Python 标准库客户端和 Skill，不下载数十 GB 的模型。H3 引擎目前支持 Windows x64。
@@ -105,3 +105,5 @@ Run `npm test` for application and voice service regressions. Real synthesis req
 The AI Tools cutout page supports MobileSAM positive/negative clicks and object boxes, followed by exact keep/erase brush corrections. Undo, clear, brush size, transparent result preview and repeated edits are available. Exported PNGs preserve the original image dimensions. Automatic InSPyReNet background removal remains available as a separate tool mode.
 
 The local checkpoint is `App/models/sams/mobile_sam.pt` (SHA-256 `6dbb90523a35330fedd7f1d3dfc66f995213d81b29a5ca8108dbcdd4e37d6c2f`). The bundled custom node is copied into ComfyUI at engine startup. Install models and the pinned MobileSAM package with `tools/install-ai-tool-models.ps1`; inference makes no network requests. Run `test/interactive-segment.py` using the App Python for real two-object, click, box, brush and RGBA checks.
+
+CLI 1.1.19：`--app-root` 可放在子命令之后；`--input -` 从标准输入读取 JSON。退出码 0 表示成功、1 表示操作失败、2 表示参数错误；错误以 JSON 输出到 stderr。`doctor` 在引擎未就绪时返回失败。等待超时、断线或 Ctrl+C 会保留任务编号，停止等待不会取消后台任务，请先查询任务再决定是否重试。安装器 `-NoPath` 可用于不修改 PATH 的独立安装。

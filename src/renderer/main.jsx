@@ -725,12 +725,14 @@ function App() {
   const removeLibraryAssets = async (next) => {
     const retainedIds = new Set(next.map((item) => item.id));
     const removedPaths = assetLibrary.filter((item) => !retainedIds.has(item.id)).map((item) => item.path).filter(Boolean);
-    setAssetLibrary(next);
-    persistCurrentDraft();
-    const saved = await window.studio.savePreference?.(ASSET_LIBRARY_KEY, JSON.stringify(next));
-    if (saved?.ok === false) return setStatus(saved.error || "素材库保存失败");
-    const result = await window.studio.pruneAssets?.(removedPaths);
-    setStatus(result?.ok === false ? `记录已移除，部分副本清理失败：${result.error}` : `素材库已更新，清理 ${result?.removed || 0} 个未使用副本`);
+    try {
+      persistCurrentDraft();
+      const saved = await window.studio.savePreference?.(ASSET_LIBRARY_KEY, JSON.stringify(next));
+      if (saved?.ok === false) return setStatus(saved.error || "素材库保存失败");
+      setAssetLibrary(next);
+      const result = await window.studio.pruneAssets?.(removedPaths);
+      setStatus(result?.ok === false ? `记录已移除，部分副本清理失败：${result.error}` : `素材库已更新，清理 ${result?.removed || 0} 个未使用副本`);
+    } catch (error) { setStatus(`素材库操作失败：${error.message}`); }
   };
   const removeLibraryAsset = (assetId) => removeLibraryAssets(assetLibrary.filter((asset) => asset.id !== assetId));
   const clearAssetLibrary = async () => {

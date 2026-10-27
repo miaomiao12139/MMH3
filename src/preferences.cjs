@@ -12,6 +12,7 @@ function validatePreference(key, raw) {
   const value = JSON.parse(raw);
   if (arrays.includes(key) ? !Array.isArray(value) : !objectValue(value)) throw new Error(`配置项格式无效：${key}`);
   if (key === COPIES_KEY && value.some(item => !objectValue(item) || typeof item.sourcePath !== "string" || typeof item.path !== "string")) throw new Error("素材副本映射格式无效");
+  if (key === "minimax-h3-asset-library-v1" && value.some(item => !objectValue(item) || typeof item.path !== "string" || ["id", "assetId", "sourcePath", "fileUrl", "thumbnailUrl", "name"].some(field => item[field] !== undefined && typeof item[field] !== "string"))) throw new Error("素材库条目格式无效");
   if (key === DRAFTS_KEY) for (const draft of Object.values(value)) {
     if (!objectValue(draft) || ["files", "previews"].some(field => draft[field] !== undefined && (!Array.isArray(draft[field]) || draft[field].some(file => typeof file !== "string")))) throw new Error("工作流草稿格式无效");
   }

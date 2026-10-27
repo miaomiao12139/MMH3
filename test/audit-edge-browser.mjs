@@ -12,7 +12,7 @@ try {
   browser=await chromium.launch({headless:true,...(process.env.H3_TEST_BROWSER_CHANNEL?{channel:process.env.H3_TEST_BROWSER_CHANNEL}:{})});
   const page=await browser.newPage({viewport:{width:1450,height:1000}});
   await page.addInitScript(()=>{
-    window.studio={getAiToolsState:async()=>({ready:true,models:{segment:true,understand:true,enhance:true,interpolate:true}}),onAiToolProgress:()=>()=>{},getPathForFile:f=>'C:/audit/'+f.name,runAiTool:async p=>{
+    window.studio={getAiToolsState:async()=>({ready:true,models:{segment:true,understand:true,enhance:true,interpolate:true}}),onAiToolProgress:callback=>{window.emitAiProgress=callback;return ()=>{}},getPathForFile:f=>'C:/audit/'+f.name,runAiTool:async p=>{
       const previewUrl=document.querySelector('.ai-selection-image img')?.src;
       if(window.hold)await new Promise(resolve=>window.finish=resolve);
       if(window.failResult)return {ok:false,error:'自检模拟处理失败'};
@@ -43,6 +43,15 @@ try {
     await page.locator('#sidebar-segment').click();await page.locator('#sidebar-understand').click();
     await page.evaluate(()=>window.finish());await page.waitForFunction(()=>!document.querySelector('input[type=file]').disabled);
     assert.equal(await page.locator('.ai-answer').count(),0);
+  });
+  await check('progress from another tool cannot replace the current task progress',async()=>{
+    await page.locator('.ai-selection-image').click();await page.evaluate(()=>window.hold=true);
+    await page.locator('.ai-run-button').click();await page.waitForFunction(()=>typeof window.finish==='function');
+    await page.evaluate(async()=>{window.emitAiProgress({kind:'understand',label:'其他任务的进度',value:91});await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));});
+    assert.equal((await page.locator('.ai-progress').textContent()).includes('其他任务的进度'),false);
+    await page.evaluate(()=>window.emitAiProgress({kind:'segment',label:'当前抠图进度',value:37}));
+    await page.getByText('当前抠图进度',{exact:true}).waitFor();
+    await page.evaluate(()=>window.finish());await page.waitForFunction(()=>!document.querySelector('input[type=file]').disabled);
   });
   assert.deepEqual(failures,[]);
 }finally{await browser?.close();await server.close();}

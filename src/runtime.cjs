@@ -80,6 +80,22 @@ async function cancelPrompt(requestJson, promptId) {
   await requestJson("POST", "/interrupt", { prompt_id: promptId });
 }
 
+function cancelTask(requestJson, task, owner = null, ownerFlag = "canceled") {
+  if (task.cancellation) return task.cancellation;
+  const pending = Promise.resolve().then(async () => {
+    if (task.promptId) await cancelPrompt(requestJson, task.promptId);
+    task.canceled = true;
+    if (owner) owner[ownerFlag] = true;
+    // Engine acknowledgement owns the cancellation result; closing an already
+    // finished local handle must not turn an accepted cancellation into failure.
+    try { task.preparation?.kill(); } catch (_) {}
+    try { task.ws?.close(); } catch (_) {}
+    return { ok: true };
+  }).finally(() => { if (task.cancellation === pending) delete task.cancellation; });
+  task.cancellation = pending;
+  return pending;
+}
+
 function describeEngineError(payload, fallback = "本地引擎执行失败") {
   const messages = [];
   const add = value => { if (typeof value === "string" && value.trim()) messages.push(value.trim()); };
@@ -96,4 +112,4 @@ function describeEngineError(payload, fallback = "本地引擎执行失败") {
   return (messages.length ? [...new Set(messages)].join("；") : fallback).slice(0, 1600);
 }
 
-module.exports = { resolveRuntimeRoot, isInside, relocatePath, relocateStoredPaths, restoreDraftAssets, cancelPrompt, describeEngineError };
+module.exports = { resolveRuntimeRoot, isInside, relocatePath, relocateStoredPaths, restoreDraftAssets, cancelPrompt, cancelTask, describeEngineError };

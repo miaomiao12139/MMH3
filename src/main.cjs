@@ -10,7 +10,7 @@ const { pathToFileURL, fileURLToPath } = require("url");
 const { createCutoutService, validateCutoutGraph } = require("./cutout.cjs");
 const { createVoiceService } = require("./voice.cjs");
 const { createIntegrationJobs } = require("./integration-jobs.cjs");
-const { resolveRuntimeRoot, relocatePath, relocateStoredPaths, cancelPrompt, describeEngineError } = require("./runtime.cjs");
+const { resolveRuntimeRoot, relocatePath, relocateStoredPaths, cancelPrompt, cancelTask, describeEngineError } = require("./runtime.cjs");
 const { createPreferenceStore } = require("./preferences.cjs");
 const { styles: generationStyles, applyGenerationSettings, styledPrompt, bindGenerationInputs, validateGenerationInputs, outputSize, resolveGenerationSettings } = require("./generation.cjs");
 
@@ -544,16 +544,10 @@ function getIntegrationJobs() {
       if (kind === "voice") return getVoiceService().cancel();
       if (kind === "cutout-batch") {
         if (!activeCutoutBatch?.task) throw new Error("任务当前不可取消");
-        activeCutoutBatch.canceled = true;
-        activeCutoutBatch.task.canceled = true;
-        if (activeCutoutBatch.task.promptId) await cancelPrompt(requestJson, activeCutoutBatch.task.promptId);
-        activeCutoutBatch.task.ws?.close();
-        return { ok: true };
+        return cancelTask(requestJson, activeCutoutBatch.task, activeCutoutBatch);
       }
       if (!activeAiTool) throw new Error("任务当前不可取消");
-      activeAiTool.canceled = true;
-      if (activeAiTool.promptId) await cancelPrompt(requestJson, activeAiTool.promptId);
-      return { ok: true };
+      return cancelTask(requestJson, activeAiTool);
     },
   });
   return integrationJobs;
@@ -1023,6 +1017,7 @@ async function runAiTool(payload = {}) {
     }
     throw new Error("本地处理超时");
   } catch (error) {
+    await task.cancellation?.catch(() => {});
     if (task.promptId) await cancelPrompt(requestJson, task.promptId).catch(() => {});
     report(task.canceled ? "任务已取消" : "处理失败", 0, { error: error.message });
     throw error;
@@ -1609,6 +1604,7 @@ async function runWorkflow(_event, { workflow, prompt, originalPrompt = prompt, 
     }
     throw new Error("任务等待超时");
   } finally {
+    await task.cancellation?.catch(() => {});
     if (promptId && !historyComplete) {
       try { await cancelPrompt(requestJson, promptId); }
       catch (error) { emit("status", `清理引擎任务失败：${error.message}`); }
@@ -1678,11 +1674,13 @@ async function processQueue() {
         job.progress = { value: 100, max: 100, label: "已完成" };
         job.completedAt = Date.now();
       } catch (error) {
+        await activeTask.cancellation?.catch(() => {});
         job.state = job.cancelRequested ? "cancelled" : "failed";
         job.error = job.cancelRequested ? "已取消" : (error?.message || "生成失败");
         job.progress = { value: 0, max: 100, label: job.state === "cancelled" ? "已取消" : "失败" };
         job.completedAt = Date.now();
       } finally {
+        await activeTask.cancellation?.catch(() => {});
         delete job.cancelRequested;
         queueProgressPersistAt.delete(job.id);
         activeQueueJobId = "";
@@ -1846,6 +1844,7 @@ async function runCutoutBatch(payload) {
         results.push({ index, inputPath: sourceMedia[index], outputPath: result?.outputPath || "" });
         emit("cutout-completed", { batchId: batch.id, itemId, index, total: batch.total, outputPath: result?.outputPath || "" });
       } catch (error) {
+        await task.cancellation?.catch(() => {});
         const canceled = Boolean(task.canceled || batch.canceled || /任务已取消/.test(error?.message || ""));
         if (canceled) { batch.canceled = true; batch.canceledCount += 1; }
         else batch.failed += 1;
@@ -1853,6 +1852,7 @@ async function runCutoutBatch(payload) {
         emit("cutout-failed", { batchId: batch.id, itemId, index, total: batch.total, error: canceled ? "已取消" : (error?.message || "抠图失败"), canceled });
         if (canceled) break;
       } finally {
+        await task.cancellation?.catch(() => {});
         batch.items.delete(itemId);
       }
     }
@@ -1941,9 +1941,8 @@ ipcMain.handle("run-ai-tool", async (_event, payload) => {
 });
 ipcMain.handle("cancel-ai-tool", async () => {
   if (!activeAiTool) return { ok: false, error: "当前没有 AI 工具任务" };
-  activeAiTool.canceled = true;
-  if (activeAiTool.promptId) await cancelPrompt(requestJson, activeAiTool.promptId).catch(() => {});
-  return { ok: true };
+  try { return await cancelTask(requestJson, activeAiTool); }
+  catch (error) { return { ok: false, error: `停止失败：${error.message}` }; }
 });
 ipcMain.handle("list-voices", () => getVoiceService().list());
 ipcMain.handle("generate-voice", async (_event, payload) => {
@@ -2103,15 +2102,8 @@ ipcMain.handle("cancel-cutout-batch", async () => {
   if (!activeCutoutBatch?.task) return { ok: false, error: "没有正在处理的抠图任务" };
   const batch = activeCutoutBatch;
   const task = batch.task;
-  batch.canceled = true;
-  task.canceled = true;
-  if (task.preparation) task.preparation.kill();
-  if (task.promptId) {
-    try { await cancelPrompt(requestJson, task.promptId); }
-    catch (error) { return { ok: false, error: `停止失败：${error.message}` }; }
-  }
-  if (task.ws) task.ws.close();
-  return { ok: true };
+  try { return await cancelTask(requestJson, task, batch); }
+  catch (error) { return { ok: false, error: `停止失败：${error.message}` }; }
 });
 ipcMain.handle("list-queue", () => queueSnapshot());
 ipcMain.handle("reorder-queue-item", (_event, jobId, targetIndex) => {
@@ -2160,14 +2152,8 @@ ipcMain.handle("cancel-queue-item", async (_event, jobId) => {
   if (!job || ["completed", "failed", "cancelled"].includes(job.state)) return { ok: false, error: "任务当前不可取消" };
   if (job.id === activeQueueJobId) {
     const task = activeTask;
-    job.cancelRequested = true;
-    task.canceled = true;
-  if (task.preparation) task.preparation.kill();
-    if (task.promptId) {
-      try { await cancelPrompt(requestJson, task.promptId); }
-      catch (error) { return { ok: false, error: `停止失败：${error.message}` }; }
-    }
-    if (task.ws) task.ws.close();
+    try { await cancelTask(requestJson, task, job, "cancelRequested"); }
+    catch (error) { return { ok: false, error: `停止失败：${error.message}` }; }
   } else {
     const previous = { ...job };
     job.state = "cancelled";
@@ -2200,6 +2186,15 @@ ipcMain.handle("retry-queue-item", async (_event, jobId) => {
   const job = readQueueJobs().find((item) => item.id === String(jobId || ""));
   if (!job || !["failed", "cancelled", "interrupted"].includes(job.state)) return { ok: false, error: "当前任务不能重试" };
   const previous = { ...job };
+  let referenceAssets = job.referenceAssets;
+  let recoveredMedia;
+  const recoveryFolders = [];
+  const recoveryDirectory = () => {
+    const name = `recovery-${crypto.randomUUID()}`;
+    recoveryFolders.push(path.join(queueInputDir(job.id), name));
+    return name;
+  };
+  const cleanupRecovery = () => { for (const folder of recoveryFolders) { try { fs.rmSync(folder, { recursive: true, force: true }); } catch (_) {} } };
   try {
     const available = (...paths) => paths.find(file => {
       try { return Boolean(file) && fs.statSync(file).isFile(); } catch (_) { return false; }
@@ -2215,16 +2210,22 @@ ipcMain.handle("retry-queue-item", async (_event, jobId) => {
           filePath: available(asset.filePath, asset.sourcePath),
         }));
         if (recovered.some(asset => !asset.filePath)) throw new Error("部分参考图片已丢失，请复用输入并重新添加图片");
-        job.referenceAssets = await stageReferenceAssets(job.id, recovered, `recovery-${crypto.randomUUID()}`);
+        referenceAssets = await stageReferenceAssets(job.id, recovered, recoveryDirectory());
       }
     }
     const media = Array.isArray(job.media) ? job.media : [];
     const sourceMedia = Array.isArray(job.sourceMedia) ? job.sourceMedia : [];
     const recovered = Array.from({ length: Math.max(media.length, sourceMedia.length) }, (_, index) => available(media[index], sourceMedia[index]));
     if (recovered.some(file => !file)) throw new Error("部分参考素材已丢失，请复用输入并在原槽位重新添加");
-    job.media = recovered.every((file, index) => file === media[index]) ? media : await stageQueueMedia(job.id, recovered, `recovery-${crypto.randomUUID()}`);
+    recoveredMedia = recovered.every((file, index) => file === media[index]) ? media : await stageQueueMedia(job.id, recovered, recoveryDirectory());
   }
-  catch (error) { Object.assign(job, previous); return { ok: false, error: error.message }; }
+  catch (error) { cleanupRecovery(); return { ok: false, error: error.message }; }
+  if (!readQueueJobs().includes(job) || job.state !== previous.state || job.media !== previous.media || job.referenceAssets !== previous.referenceAssets) {
+    cleanupRecovery();
+    return { ok: false, error: "任务已被删除或更改，未重复提交，请刷新队列" };
+  }
+  job.media = recoveredMedia;
+  if (referenceAssets !== undefined) job.referenceAssets = referenceAssets;
   job.state = "queued";
   job.error = "";
   job.outputPath = "";
@@ -2235,6 +2236,7 @@ ipcMain.handle("retry-queue-item", async (_event, jobId) => {
   if (writeQueueJobs() === false) {
     Object.assign(job, previous);
     for (const key of Object.keys(job)) if (!Object.hasOwn(previous, key)) delete job[key];
+    cleanupRecovery();
     return { ok: false, error: "队列保存失败，未开始重试，原任务已保留" };
   }
   emitQueue();
@@ -2263,21 +2265,13 @@ ipcMain.handle("run-workflow", async (_event, payload) => {
   catch (error) { return { ok: false, error: error.message || "加入队列失败" }; }
 });
 ipcMain.handle("cancel-workflow", async () => {
-  if (!activeTask) return false;
-  if (activeQueueJobId) {
-    const job = readQueueJobs().find((item) => item.id === activeQueueJobId);
-    if (job) job.cancelRequested = true;
-  }
+  if (!activeQueueJobId && !activeTask?.promptId && !activeTask?.preparation) return false;
+  const jobId = activeQueueJobId;
+  const job = jobId ? readQueueJobs().find((item) => item.id === jobId) : null;
   const task = activeTask;
-  task.canceled = true;
-  if (task.preparation) task.preparation.kill();
-  if (task.promptId) {
-    try { await cancelPrompt(requestJson, task.promptId); }
-    catch (error) { emit("status", `停止失败：${error.message}`); return false; }
-  }
-  if (task.ws) task.ws.close();
-  activeTask = { promptId: null, ws: null };
-  emit("progress", { value: 0, max: 100, label: "已取消", ...(activeQueueJobId ? { jobId: activeQueueJobId } : {}) });
+  try { await cancelTask(requestJson, task, job, "cancelRequested"); }
+  catch (error) { emit("status", `停止失败：${error.message}`); return false; }
+  emit("progress", { value: 0, max: 100, label: "已取消", ...(jobId ? { jobId } : {}) });
   emit("status", "任务已取消");
   return true;
 });

@@ -26,9 +26,9 @@ export default function AiToolsWorkspace({ active, tool: selectedTool = "enhance
   const current = useMemo(() => tools.find(item => item.id === tool), [tool]);
 
   useEffect(() => { window.studio?.getAiToolsState?.().then(setState).catch(cause => setError(cause.message)); const timer = setInterval(() => window.studio?.getAiToolsState?.().then(setState).catch(() => {}), 3000); return () => clearInterval(timer); }, []);
-  useEffect(() => window.studio?.onAiToolProgress?.(value => setProgress(value)) || undefined, []);
+  useEffect(() => window.studio?.onAiToolProgress?.(value => { if (value?.kind === toolRef.current) setProgress(value); }) || undefined, []);
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
-  useEffect(() => { setFile(""); setFileName(""); setPreview(""); setResult(null); setError(""); setSegmentPrompts({ points: [], strokes: [], box: null, automatic: false }); if (fileInput.current) fileInput.current.value = ""; }, [tool]);
+  useEffect(() => { setFile(""); setFileName(""); setPreview(""); setResult(null); setProgress(null); setError(""); setSegmentPrompts({ points: [], strokes: [], box: null, automatic: false }); if (fileInput.current) fileInput.current.value = ""; }, [tool]);
 
   const chooseFromInput = event => {
     const selected = event.target.files?.[0]; if (!selected) return;

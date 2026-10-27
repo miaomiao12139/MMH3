@@ -1,13 +1,13 @@
 {
   "name": "minimax-h3-studio",
-  "version": "1.1.21",
+  "version": "1.1.22",
   "description": "Offline MiniMax H3 video generation studio",
   "author": "MiniMax H3 Studio",
   "private": true,
   "main": "src/main.cjs",
   "scripts": {
     "build": "vite build",
-    "test": "node test/smoke.mjs && node test/cutout-ui.mjs && node test/runtime-regressions.cjs && node test/generation-upgrade.cjs && node test/logic-regressions.cjs && node test/self-audit.cjs && node test/deep-audit.cjs && node test/file-lifecycle-audit.cjs && node test/recovery-history-audit.cjs && node test/cutout-storage-audit.cjs && node test/voice-service.cjs && node test/ai-tools.cjs && node test/audit-queue-persistence.cjs && node test/integration-jobs.cjs && node test/integration-api.cjs && node test/whole-app-audit.cjs && node test/concurrency-audit.cjs",
+    "test": "node test/smoke.mjs && node test/cutout-ui.mjs && node test/runtime-regressions.cjs && node test/generation-upgrade.cjs && node test/logic-regressions.cjs && node test/self-audit.cjs && node test/deep-audit.cjs && node test/file-lifecycle-audit.cjs && node test/recovery-history-audit.cjs && node test/cutout-storage-audit.cjs && node test/voice-service.cjs && node test/ai-tools.cjs && node test/audit-queue-persistence.cjs && node test/integration-jobs.cjs && node test/integration-api.cjs && node test/whole-app-audit.cjs && node test/concurrency-audit.cjs && node test/operational-audit.cjs",
     "dist": "npm run build && electron-builder --win portable"
   },
   "dependencies": {
